@@ -1,0 +1,31 @@
+<title>Emacs Integration for Fossil</title>
+
+This mini-project is for integrating emacs into fossil.  This needs a
+few changes into fossil and needs a new file to be loaded into emacs.
+
+<h4>How Do I load Fossil support into emacs?</h4>
+
+Short answer:
+
+Add this to your .emacs file, or cut and paste this into *scratch* buffer and do
+<code>C-x e</code> to execute it.   
+
+<pre>
+(setq vc-handled-backends '(CVS Fossil))
+(load-file "/path/to/this/project/vc/el/vc-fossil.el")
+</pre>
+
+<h4>What emacs keys do I need?</h4>
+
+This integrates fossil into emacs vc builtin mode.  The same keys will
+work for fossil inside a fossil tree as for other scms outside.
+
+A few are:
+
+<table>
+<tr><td><code>C-x v d</code></td><td>Run Fossil dired - like cvs-examine</td></tr>
+<tr><td><code>C-x v l</code></td><td>When in a file, show log</td></tr>
+<tr><td><code>v</code></td><td>In VC, do next action: merge/update/checkin</td></tr>
+</table>
+
+</table>
