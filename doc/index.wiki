@@ -25,6 +25,7 @@ checkout do this:
 <pre>
 % fossil update venks-emacs
 % make
+</pre>
   
 That builds you a fossil executable which can be used by this
 emacs elisp package
