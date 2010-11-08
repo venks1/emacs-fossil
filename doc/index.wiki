@@ -20,10 +20,9 @@ Add this to your .emacs file, or cut and paste this into *scratch* buffer and do
 
 <h4>What changes to fossil are required</h4>
 
-There are a few changes required to 3 files (src/file.c, src/finfo.c
-and src/update.c) in the fossil tree.  These are currently in the
-fossil repository in the "venks-emacs" branch.  In the fossil source
-checkout do this:
+There are a few changes required to 1 file (src/file.c) in the fossil
+tree.  These are currently in the main fossil repository in the
+"venks-emacs" branch.  In the fossil source checkout do this:
 
 <pre>
 % fossil update venks-emacs
