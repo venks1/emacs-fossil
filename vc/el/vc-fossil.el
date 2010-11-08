@@ -225,7 +225,7 @@
   "Print full log for a file"
   (if files 
       (progn
-       (vc-fossil-command buffer 0 (car files) "finfo" "-l" "-b")
+       (vc-fossil-command buffer 0 (car files) "finfo" "-l")
        (vc-fossil-print-log (cdr files) buffer))))
     
 ;; TBD: log-entry 
