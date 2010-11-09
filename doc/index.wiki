@@ -20,17 +20,18 @@ Add this to your .emacs file, or cut and paste this into *scratch* buffer and do
 
 <h4>What changes to fossil are required</h4>
 
-There are a few changes required to 1 file (src/file.c) in the fossil
-tree.  These are currently in the main fossil repository in the
-"venks-emacs" branch.  In the fossil source checkout do this:
+As of this fossil version:
 
 <pre>
-% fossil update venks-emacs
-% make
+7d2d1d3228232b1a1434e425f11008c043171263 2010-11-09 17:51:35 UTC
 </pre>
-  
-That builds you a fossil executable which can be used by this
-emacs elisp package
+
+Fossil trunk (and therefore binaries after that date) support
+this package directly.
+
+Future changes, if required, will be in the venks-emacs branch on the
+fossil repository.
+
 
 <h4>What emacs keys do I need?</h4>
 
