@@ -81,16 +81,12 @@
 
 (defun vc-fossil-registered (file)
   "Check whether FILE is registered with fossil."
-  (when (vc-fossil-root file)
-    (with-temp-buffer
-      (let* ((dir (file-name-directory file))
-	     (name (file-relative-name file dir))
-	     (str (ignore-errors
-		    (when dir (cd dir))
-		    (vc-fossil--out-ok "finfo" "-s" name)
-		    (buffer-string))))
-	     (and str
-		    (not (string= (substring str 0 7) "unknown")))))))
+  (with-temp-buffer
+    (let* ((str (ignore-errors
+		 (vc-fossil--out-ok "finfo" "-s" (file-truename file))
+		 (message (buffer-string)))))
+      (and str
+	   (not (string= (substring str 0 7) "unknown"))))))
 
 (defun vc-fossil-state-code (code)
   (if (not code)
