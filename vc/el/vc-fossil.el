@@ -84,7 +84,7 @@
   (with-temp-buffer
     (let* ((str (ignore-errors
 		 (vc-fossil--out-ok "finfo" "-s" (file-truename file))
-		 (message (buffer-string)))))
+		 (buffer-string))))
       (and str
 	   (not (string= (substring str 0 7) "unknown"))))))
 
