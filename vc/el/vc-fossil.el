@@ -86,6 +86,7 @@
 		 (vc-fossil--out-ok "finfo" "-s" (file-truename file))
 		 (buffer-string))))
       (and str
+	   (> (length str) 7)
 	   (not (string= (substring str 0 7) "unknown"))))))
 
 (defun vc-fossil-state-code (code)
