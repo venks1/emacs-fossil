@@ -97,6 +97,7 @@
 		  ((string= code "UNCHANGED") 'up-to-date)
 		  ((string= code "CONFLICT")  'edited)
 		  ((string= code "ADDED")     'added)
+		  ((string= code "ADD")       'needs-update)
 		  ((string= code "EDITED")    'edited)
 		  ((string= code "REMOVE")    'removed)
 		  ((string= code "UPDATE")    'needs-update)
