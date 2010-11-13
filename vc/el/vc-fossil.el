@@ -137,14 +137,15 @@
       (setq line (buffer-substring-no-properties (point) (line-end-position)))
       ;(message line)
       (setq status-word (car (split-string line)))
-      (setq state (vc-fossil-state-code status-word))
       (setq file (substring line (+ (length status-word) 1)))
       ;(message file)
       (setq file (expand-file-name file root))
       ;(message file)
       (setq file (file-relative-name file dir))
       ;(message file)
-      (setq result (cons (list file state) result))
+      (setq result 
+	    (if (string-match ":" line) result 
+	      (cons (list file (vc-fossil-state-code status-word)) result)))
       (forward-line))
     (funcall update-function result nil)))
 
