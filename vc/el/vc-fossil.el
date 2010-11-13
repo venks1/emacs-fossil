@@ -13,6 +13,7 @@
 ;; to the list of supported backends in `vc-handled-backends'
 ;;
 ;; e.g.    (add-to-list 'vc-handled-backends 'Fossil)
+;;     or  (setq vc-handled-backends '(CVS Fossil))
 
 ;;; Implemented Functions
 ;; BACKEND PROPERTIES
@@ -92,26 +93,30 @@
 (defun vc-fossil-state-code (code)
   (if (not code)
       'unregistered
-    (let ((state (cond 
-		  ((string= code "UNKNOWN")   'unregistered)
-		  ((string= code "UNCHANGED") 'up-to-date)
-		  ((string= code "CONFLICT")  'edited)
-		  ((string= code "ADDED")     'added)
-		  ((string= code "ADD")       'needs-update)
-		  ((string= code "EDITED")    'edited)
-		  ((string= code "REMOVE")    'removed)
-		  ((string= code "UPDATE")    'needs-update)
-		  ((string= code "MERGE")     'needs-merge))))
-      (if state state
-	(error "Cannot handle fossil state code %s" code)))))
+    (cond 
+     ((string= code "UNKNOWN")   'unregistered)
+     ((string= code "UNCHANGED") 'up-to-date)
+     ((string= code "CONFLICT")  'edited)
+     ((string= code "ADDED")     'added)
+     ((string= code "ADD")       'needs-update)
+     ((string= code "EDITED")    'edited)
+     ((string= code "REMOVE")    'removed)
+     ((string= code "UPDATE")    'needs-update)
+     ((string= code "MERGE")     'needs-merge))))
 
+; (vc-fossil-state "/proj/fiesta/tools/fossil/emacs-fossil/vc/el/vc-fossil.el")
 
-(defun vc-fossil-state  (file)
+(defun vc-fossil-state  (file) 
   "Fossil specific version of `vc-state'."
   ; (message (format "vc-fossil-state on %s" file))
-  (let ((line (vc-fossil--run "update" "-n" "-v" "--file" file)))
-    (and line
-	 (vc-fossil-state-code (car (split-string line))))))
+  (with-temp-buffer
+    (insert (vc-fossil--run "update" "-n" "-v" "current" file))
+    (goto-char (point-max))
+    (forward-line -1)
+    (vc-fossil-state-code 
+     (car 
+      (split-string 
+       (buffer-substring-no-properties (point) (buffer-end 1)))))))
 
 (defun vc-fossil-working-revision (file)
   "Fossil Specific version of `vc-working-revision'."
@@ -135,17 +140,13 @@
     (goto-char (point-min))
     (while (not (eobp))
       (setq line (buffer-substring-no-properties (point) (line-end-position)))
-      ;(message line)
       (setq status-word (car (split-string line)))
       (setq file (substring line (+ (length status-word) 1)))
-      ;(message file)
       (setq file (expand-file-name file root))
-      ;(message file)
       (setq file (file-relative-name file dir))
-      ;(message file)
-      (setq result 
-	    (if (string-match ":" line) result 
-	      (cons (list file (vc-fossil-state-code status-word)) result)))
+      (setq result (if (or (string-match ":" line)
+			   (string-match "^[ \t]" line)) result
+		       (cons (list file (vc-fossil-state-code status-word)) result)))
       (forward-line))
     (funcall update-function result nil)))
 
