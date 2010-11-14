@@ -109,14 +109,9 @@
 (defun vc-fossil-state  (file) 
   "Fossil specific version of `vc-state'."
   ; (message (format "vc-fossil-state on %s" file))
-  (with-temp-buffer
-    (insert (vc-fossil--run "update" "-n" "-v" "current" file))
-    (goto-char (point-max))
-    (forward-line -1)
-    (vc-fossil-state-code 
-     (car 
-      (split-string 
-       (buffer-substring-no-properties (point) (buffer-end 1)))))))
+  (let ((line (vc-fossil--run "update" "-n" "-v" "current" file)))
+    (and line
+	 (vc-fossil-state-code (car (split-string line))))))
 
 (defun vc-fossil-working-revision (file)
   "Fossil Specific version of `vc-working-revision'."
@@ -136,17 +131,18 @@
   ;(message dir)
   (insert (vc-fossil--run "update" "-n" "-v" "current" dir))
   (let* ((result)
+	 (done nil)
 	 (root (vc-fossil-root dir)))
     (goto-char (point-min))
-    (while (not (eobp))
+    (while (and (not (eobp)) (not done))
       (setq line (buffer-substring-no-properties (point) (line-end-position)))
       (setq status-word (car (split-string line)))
-      (setq file (substring line (+ (length status-word) 1)))
+      (setq done (string-match "-----" status-word))
+      (setq file (if done "." (substring line (+ (length status-word) 1))))
       (setq file (expand-file-name file root))
       (setq file (file-relative-name file dir))
-      (setq result (if (or (string-match ":" line)
-			   (string-match "^[ \t]" line)) result
-		       (cons (list file (vc-fossil-state-code status-word)) result)))
+      (setq result (if done result
+		     (cons (list file (vc-fossil-state-code status-word)) result)))
       (forward-line))
     (funcall update-function result nil)))
 
@@ -221,7 +217,10 @@
 
 ;; HISTORY FUNCTIONS
 
-(defun vc-fossil-print-log (files &optional buffer)
+;; FIXME, we actually already have short, start and limit, need to
+;; add it into the code
+
+(defun vc-fossil-print-log (files buffer &optional shortlog start-revision limit)
   "Print full log for a file"
   (if files 
       (progn
