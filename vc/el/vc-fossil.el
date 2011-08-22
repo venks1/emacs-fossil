@@ -132,7 +132,8 @@
   (insert (vc-fossil--run "update" "-n" "-v" "current" dir))
   (let* ((result)
 	 (done nil)
-	 (root (vc-fossil-root dir)))
+	 (root (vc-fossil-root dir))
+	 line status-word file)
     (goto-char (point-min))
     (while (and (not (eobp)) (not done))
       (setq line (buffer-substring-no-properties (point) (line-end-position)))
@@ -149,7 +150,7 @@
 (defun vc-fossil-after-dir-status (callback)
   "Function to call after the status process has finished"
   (message "after-dir-status called %s" (buffer-string))
-  (let (result)
+  (let (result line state status-word file)
     (goto-char (point-min))
     (while (not (eobp))
       (setq line (buffer-substring-no-properties (point) (line-end-position)))
@@ -267,7 +268,8 @@
   (if file
       (with-temp-buffer 
 	(let* ((found (not rev))
-	       (newver nil))
+	       (newver nil)
+	       line version)
 	  (insert (vc-fossil--run "finfo" "-l" "-b" file))
 					;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
 	  (goto-char (point-min))
@@ -285,7 +287,8 @@
   (if file
       (with-temp-buffer 
 	(let* ((found (not rev))
-	       (oldver nil))
+	       (oldver nil)
+	       line version)
 	  (insert (vc-fossil--run "finfo" "-l" "-b" file))
 					;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
 	  (goto-char (point-min))
