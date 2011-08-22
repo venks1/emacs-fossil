@@ -14,9 +14,16 @@ Add this to your .emacs file, or cut and paste this into *scratch* buffer and do
 <code>C-x e</code> to execute it.   
 
 <pre>
-(setq vc-handled-backends '(CVS Fossil))
+(unless (memq 'Fossil vc-handled-backends)
+  (push 'Fossil vc-handled-backends))
 (load-file "/path/to/this/project/vc/el/vc-fossil.el")
 </pre>
+
+To compile the file (with warnings) do the following
+<pre>
+emacs -batch -q -no-site-file -eval '(byte-compile-file "vc-fossil.el")'
+</pre>
+then you can load vc-fossil.elc, which should be nominally faster.
 
 <h4>What changes to fossil are required</h4>
 
