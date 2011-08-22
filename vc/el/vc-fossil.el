@@ -205,10 +205,10 @@
       (vc-fossil-command buffer 0 file "finfo" "-r" rev "-p")))
 
 (defun vc-fossil-checkout (file &optional editable rev)
-  (if (eq rev t)
-      (vc-fossil-command nil 0 nil "update")
-    ((vc-fossil-command nil 0 nil "update" rev)
-  )))
+  (cond ((eq rev t)
+	 (vc-fossil-command nil 0 nil "update"))
+	(t
+	 (vc-fossil-command nil 0 nil "update" rev))))
 
 (defun vc-fossil-revert (file &optional contents-done)
   "Revert FILE to the version stored in the fossil repository."
@@ -249,7 +249,7 @@
 
 (defun vc-fossil-create-tag (file name branchp)
   (let* ((dir (if (file-directory-p file) file (file-name-directory file)))
-	 ((default-directory dir)))
+	 (default-directory dir))
     (if branchp
 	(vc-fossil-command nil 0 nil "branch" "new" name (vc-fossil-get-id dir))
       (vc-fossil-command nil 0 nil "tag" "add" name (vc-fossil-get-id dir)))))
