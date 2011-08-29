@@ -103,11 +103,11 @@
 	((string= code "MERGE")     'needs-merge)
 	(t			    nil)))
 
-; (vc-fossil-state "/proj/fiesta/tools/fossil/emacs-fossil/vc/el/vc-fossil.el")
+;; (vc-fossil-state "/proj/fiesta/tools/fossil/emacs-fossil/vc/el/vc-fossil.el")
 
 (defun vc-fossil-state  (file)
   "Fossil specific version of `vc-state'."
-  ; (message (format "vc-fossil-state on %s" file))
+  ;; (message (format "vc-fossil-state on %s" file))
   (let ((line (vc-fossil--run "update" "-n" "-v" "current" file)))
     (and line
 	 (vc-fossil-state-code (car (split-string line))))))
@@ -127,7 +127,7 @@
 
 (defun vc-fossil-dir-status (dir update-function)
   "Get Fossil status for all files in a directory"
-  ;(message dir)
+  ;; (message dir)
   (insert (vc-fossil--run "update" "-n" "-v" "current" dir))
   (let* ((result)
 	 (done nil)
@@ -266,11 +266,11 @@
 	     (newver nil)
 	     line version)
 	(insert (vc-fossil--run "finfo" "-l" "-b" file))
-					;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
+	;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
 	(goto-char (point-min))
 	(while (not (eobp))
 	  (setq line (buffer-substring-no-properties (point) (line-end-position)))
-					;(message line)
+	  ;; (message line)
 	  (setq version (car (split-string line)))
 	  (setq newver (or newver (and found version)))
 	  (setq found  (string= version rev))
@@ -285,7 +285,7 @@
 	     (oldver nil)
 	     line version)
 	(insert (vc-fossil--run "finfo" "-l" "-b" file))
-					;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
+	;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
 	(goto-char (point-min))
 	(while (not (eobp))
 	  (setq line (buffer-substring-no-properties (point) (line-end-position)))
