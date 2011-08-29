@@ -17,6 +17,12 @@ Add this to your .emacs file, or cut and paste this into *scratch* buffer and do
 (add-to-list 'vc-handled-backends 'Fossil)
 (load-file "/path/to/this/project/vc/el/vc-fossil.el")
 </pre>
+or if you would rather load the file lazily, compile the file (see
+below) and use this instead.
+<pre>
+(add-to-list 'vc-handled-backends 'Fossil)
+(autoload 'vc-fossil-registered "/path/to/this/project/vc/el/vc-fossil.elc")
+</pre>
 
 To compile the file (with warnings) do the following
 <pre>
