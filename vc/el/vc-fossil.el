@@ -136,10 +136,10 @@
       (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
 	     (status-word (car (split-string line))))
 	(setq done (string-match "-----" status-word))
-	(let ((file (if done "." (substring line (+ (length status-word) 1)))))
-	  (let ((file (expand-file-name file root)))
-	    (let ((file (file-relative-name file dir)))
-	      (unless done
+	(unless done
+	  (let ((file (substring line (+ (length status-word) 1))))
+	    (let ((file (expand-file-name file root)))
+	      (let ((file (file-relative-name file dir)))
 		(setq result
 		      (cons (list file (vc-fossil-state-code status-word))
 			    result)))))))
