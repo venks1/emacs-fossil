@@ -47,17 +47,17 @@
 ;; Internal Commands
 
 (defun vc-fossil--call (buffer &rest args)
-  (apply 'process-file "fossil" nil buffer nil args))
+  (apply #'process-file "fossil" nil buffer nil args))
 
 (defun vc-fossil--out-ok (&rest args)
-  (zerop (apply 'vc-fossil--call '(t nil) args)))
+  (zerop (apply #'vc-fossil--call '(t nil) args)))
 
 (defun vc-fossil--run (&rest args)
   "Run a fossil command and return its output as a string"
   (let* ((ok t)
 	 (str (with-output-to-string
 		(with-current-buffer standard-output
-		  (unless (apply 'vc-fossil--out-ok args)
+		  (unless (apply #'vc-fossil--out-ok args)
 		    (setq ok nil))))))
     (and ok str)))
 
@@ -67,7 +67,7 @@
 (defun vc-fossil-command (buffer okstatus file-or-list &rest flags)
   "A wrapper around `vc-do-command' for use in vc-fossil.el.
   The difference to vc-do-command is that this function always invokes `fossil'."
-  (apply 'vc-do-command (or buffer "*vc*") okstatus "fossil" file-or-list flags))
+  (apply #'vc-do-command (or buffer "*vc*") okstatus "fossil" file-or-list flags))
 
 (defun vc-fossil-get-id (dir)
   (let* ((default-directory dir)
@@ -116,7 +116,7 @@
   "Fossil Specific version of `vc-working-revision'."
   (let ((line (vc-fossil--run "finfo" "-s" file)))
     (and line
-	 (car (cdr (split-string line))))))
+	 (cadr (split-string line)))))
 
 (defun vc-fossil-workfile-unchanged-p (file)
   (eq 'up-to-date (vc-fossil-state file)))
@@ -200,15 +200,14 @@
   (vc-fossil-command nil 0 files "commit" "-m" comment))
 
 (defun vc-fossil-find-revision (file rev buffer)
-  (if (string= rev "")
-      (vc-fossil-command buffer 0 file "finfo" "-p")
-    (vc-fossil-command buffer 0 file "finfo" "-r" rev "-p")))
+  (apply #'vc-fossil-command buffer 0 file
+	 "finfo" `(,@(if (string= rev "")
+			 '()
+		       `("-r" ,rev)) "-p")))
 
 (defun vc-fossil-checkout (file &optional editable rev)
-  (cond ((eq rev t)
-	 (vc-fossil-command nil 0 nil "update"))
-	(t
-	 (vc-fossil-command nil 0 nil "update" rev))))
+  (apply #'vc-fossil-command nil 0 nil
+	 "update" `(,@(if (eq rev t) '() `(,rev)))))
 
 (defun vc-fossil-revert (file &optional contents-done)
   "Revert FILE to the version stored in the fossil repository."
@@ -232,11 +231,10 @@
   "Get Differences for a file"
   ;; (message (format "Get diffs between rev <%s> and <%s> for file <%s>" rev1 rev2 file))
   (let ((buf (or buffer "*vc-diff*")))
-    (cond ((and rev1 rev2)
-	   (vc-fossil-command buf 0 file "diff" "-i" "--from" rev1 "--to" rev2))
-	  (rev1 (vc-fossil-command buf 0 file "diff" "-i" "--from" rev1))
-	  (rev2 (vc-fossil-command buf 0 file "diff" "-i" "--to" rev2))
-	  (t (vc-fossil-command buf 0 file "diff" "-i")))))
+    (apply #'vc-fossil-command
+	   buf 0 file "diff" "-i"
+	   `(,@(if rev1 `("--from" ,rev1) '())
+	     ,@(if rev2 `("--to" ,rev2) '())))))
 
 ;;; TAG SYSTEM
 
@@ -246,9 +244,10 @@
 (defun vc-fossil-create-tag (file name branchp)
   (let* ((dir (if (file-directory-p file) file (file-name-directory file)))
 	 (default-directory dir))
-    (if branchp
-	(vc-fossil-command nil 0 nil "branch" "new" name (vc-fossil-get-id dir))
-      (vc-fossil-command nil 0 nil "tag" "add" name (vc-fossil-get-id dir)))))
+    (apply #'vc-fossil-command nil 0 nil `(,@(if branchp
+						 '("branch" "new")
+					       '("tag" "add"))
+					   ,name ,(vc-fossil-get-id dir)))))
 
 ;; FIXME: we should update buffers if update is non-nill
 
