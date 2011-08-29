@@ -5,22 +5,21 @@
 
 ;; This file contains a VC backend for the fossil version control
 ;; system.
-;;
 
 ;;; Installation:
 
-;; 1. Put this file somewhere in the emacs load-path.  2. Add Fossil
-;; to the list of supported backends in `vc-handled-backends'
-;;
-;; e.g.    (add-to-list 'vc-handled-backends 'Fossil)
-;;     or  (setq vc-handled-backends '(CVS Fossil))
+;; 1. Put this file somewhere in the emacs load-path.
+;; 2. Tell Emacs to load it when needed:
+;;    (autoload 'vc-fossil-registered "vc-fossil")
+;; 3. Add Fossil to the list of supported backends:
+;;    (add-to-list 'vc-handled-backends 'Fossil)
 
 ;;; Implemented Functions
 ;; BACKEND PROPERTIES
 ;; * revision-granularity
 ;; STATE-QUERYING FUNCTIONS
-;; * registered (file)   
-;; * state (file) - 'up-to-date 'edited 'needs-patch 'needs-merge 
+;; * registered (file)
+;; * state (file) - 'up-to-date 'edited 'needs-patch 'needs-merge
 ;; * workfile-version (file)
 ;; * checkout-model (file)
 ;; - workfile-unchanged-p (file)
@@ -56,10 +55,10 @@
 (defun vc-fossil--run (&rest args)
   "Run a fossil command and return its output as a string"
   (let* ((ok t)
-         (str (with-output-to-string
-                (with-current-buffer standard-output
-                  (unless (apply 'vc-fossil--out-ok args)
-                    (setq ok nil))))))
+	 (str (with-output-to-string
+		(with-current-buffer standard-output
+		  (unless (apply 'vc-fossil--out-ok args)
+		    (setq ok nil))))))
     (and ok str)))
 
 (defun vc-fossil-root (file)
@@ -85,8 +84,8 @@
   "Check whether FILE is registered with fossil."
   (with-temp-buffer
     (let* ((str (ignore-errors
-		 (vc-fossil--out-ok "finfo" "-s" (file-truename file))
-		 (buffer-string))))
+		  (vc-fossil--out-ok "finfo" "-s" (file-truename file))
+		  (buffer-string))))
       (and str
 	   (> (length str) 7)
 	   (not (string= (substring str 0 7) "unknown"))))))
@@ -94,7 +93,7 @@
 (defun vc-fossil-state-code (code)
   (if (not code)
       'unregistered
-    (cond 
+    (cond
      ((string= code "UNKNOWN")   'unregistered)
      ((string= code "UNCHANGED") 'up-to-date)
      ((string= code "CONFLICT")  'edited)
@@ -107,7 +106,7 @@
 
 ; (vc-fossil-state "/proj/fiesta/tools/fossil/emacs-fossil/vc/el/vc-fossil.el")
 
-(defun vc-fossil-state  (file) 
+(defun vc-fossil-state  (file)
   "Fossil specific version of `vc-state'."
   ; (message (format "vc-fossil-state on %s" file))
   (let ((line (vc-fossil--run "update" "-n" "-v" "current" file)))
@@ -168,7 +167,7 @@
   (let* ((info (vc-fossil--run "info"))
 	 (posco (string-match "checkout: *\\([0-9a-fA-F]+\\) \\([-0-9: ]+ UTC\\)" info))
 	 (coid (substring (match-string 1 info) 0 9))
-	 (cots (format-time-string "%Y-%m-%d %H:%M:%S %Z" 
+	 (cots (format-time-string "%Y-%m-%d %H:%M:%S %Z"
 				   (safe-date-to-time (match-string 2 info))))
 	 (postag (string-match "tags: *\\(.*\\)" info))
 	 (tags (match-string 1 info))
@@ -204,7 +203,7 @@
 (defun vc-fossil-find-revision (file rev buffer)
   (if (string= rev "")
       (vc-fossil-command buffer 0 file "finfo" "-p")
-      (vc-fossil-command buffer 0 file "finfo" "-r" rev "-p")))
+    (vc-fossil-command buffer 0 file "finfo" "-r" rev "-p")))
 
 (defun vc-fossil-checkout (file &optional editable rev)
   (cond ((eq rev t)
@@ -224,12 +223,12 @@
 
 (defun vc-fossil-print-log (files buffer &optional shortlog start-revision limit)
   "Print full log for a file"
-  (if files 
+  (if files
       (progn
-       (vc-fossil-command buffer 0 (car files) "finfo" "-l")
-       (vc-fossil-print-log (cdr files) buffer))))
-    
-;; TBD: log-entry 
+	(vc-fossil-command buffer 0 (car files) "finfo" "-l")
+	(vc-fossil-print-log (cdr files) buffer))))
+
+;; TBD: log-entry
 
 (defun vc-fossil-diff (file &optional rev1 rev2 buffer)
   "Get Differences for a file"
@@ -261,18 +260,18 @@
 (defun vc-fossil-retrieve-tag (dir name update)
   (let ((default-directory dir))
     (vc-fossil-command nil 0 nil "checkout" name)))
-	 
+
 ;;; MISCELLANEOUS
 
 (defun vc-fossil-previous-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
   (if file
-      (with-temp-buffer 
+      (with-temp-buffer
 	(let* ((found (not rev))
 	       (newver nil)
 	       line version)
 	  (insert (vc-fossil--run "finfo" "-l" "-b" file))
-					;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
+	  ;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
 	  (goto-char (point-min))
 	  (while (not (eobp))
 	    (setq line (buffer-substring-no-properties (point) (line-end-position)))
@@ -286,12 +285,12 @@
 (defun vc-fossil-next-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
   (if file
-      (with-temp-buffer 
+      (with-temp-buffer
 	(let* ((found (not rev))
 	       (oldver nil)
 	       line version)
 	  (insert (vc-fossil--run "finfo" "-l" "-b" file))
-					;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
+	  ;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
 	  (goto-char (point-min))
 	  (while (not (eobp))
 	    (setq line (buffer-substring-no-properties (point) (line-end-position)))
