@@ -91,18 +91,17 @@
 	   (not (string= (substring str 0 7) "unknown"))))))
 
 (defun vc-fossil-state-code (code)
-  (if (not code)
-      'unregistered
-    (cond
-     ((string= code "UNKNOWN")   'unregistered)
-     ((string= code "UNCHANGED") 'up-to-date)
-     ((string= code "CONFLICT")  'edited)
-     ((string= code "ADDED")     'added)
-     ((string= code "ADD")       'needs-update)
-     ((string= code "EDITED")    'edited)
-     ((string= code "REMOVE")    'removed)
-     ((string= code "UPDATE")    'needs-update)
-     ((string= code "MERGE")     'needs-merge))))
+  (cond ((not code)		    'unregistered)
+	((string= code "UNKNOWN")   'unregistered)
+	((string= code "UNCHANGED") 'up-to-date)
+	((string= code "CONFLICT")  'edited)
+	((string= code "ADDED")     'added)
+	((string= code "ADD")       'needs-update)
+	((string= code "EDITED")    'edited)
+	((string= code "REMOVE")    'removed)
+	((string= code "UPDATE")    'needs-update)
+	((string= code "MERGE")     'needs-merge)
+	(t			    nil)))
 
 ; (vc-fossil-state "/proj/fiesta/tools/fossil/emacs-fossil/vc/el/vc-fossil.el")
 
@@ -223,25 +222,21 @@
 
 (defun vc-fossil-print-log (files buffer &optional shortlog start-revision limit)
   "Print full log for a file"
-  (if files
-      (progn
-	(vc-fossil-command buffer 0 (car files) "finfo" "-l")
-	(vc-fossil-print-log (cdr files) buffer))))
+  (when files
+    (vc-fossil-command buffer 0 (car files) "finfo" "-l")
+    (vc-fossil-print-log (cdr files) buffer)))
 
 ;; TBD: log-entry
 
 (defun vc-fossil-diff (file &optional rev1 rev2 buffer)
   "Get Differences for a file"
-  ;(message (format "Get diffs between rev <%s> and <%s> for file <%s>" rev1 rev2 file))
+  ;; (message (format "Get diffs between rev <%s> and <%s> for file <%s>" rev1 rev2 file))
   (let ((buf (or buffer "*vc-diff*")))
-    (if (and rev1 rev2)
-	(vc-fossil-command buf 0 file "diff" "-i" "--from" rev1 "--to" rev2)
-      (if rev1
-	  (vc-fossil-command buf 0 file "diff" "-i" "--from" rev1)
-	(if rev2
-	    (vc-fossil-command buf 0 file "diff" "-i" "--to" rev2)
-	  (vc-fossil-command buf 0 file "diff" "-i")
-	  )))))
+    (cond ((and rev1 rev2)
+	   (vc-fossil-command buf 0 file "diff" "-i" "--from" rev1 "--to" rev2))
+	  (rev1 (vc-fossil-command buf 0 file "diff" "-i" "--from" rev1))
+	  (rev2 (vc-fossil-command buf 0 file "diff" "-i" "--to" rev2))
+	  (t (vc-fossil-command buf 0 file "diff" "-i")))))
 
 ;;; TAG SYSTEM
 
@@ -265,40 +260,40 @@
 
 (defun vc-fossil-previous-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
-  (if file
-      (with-temp-buffer
-	(let* ((found (not rev))
-	       (newver nil)
-	       line version)
-	  (insert (vc-fossil--run "finfo" "-l" "-b" file))
-	  ;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
-	  (goto-char (point-min))
-	  (while (not (eobp))
-	    (setq line (buffer-substring-no-properties (point) (line-end-position)))
-	    ;(message line)
-	    (setq version (car (split-string line)))
-	    (setq newver (or newver (and found version)))
-	    (setq found  (string= version rev))
-	    (forward-line))
-	  newver))))
+  (when file
+    (with-temp-buffer
+      (let* ((found (not rev))
+	     (newver nil)
+	     line version)
+	(insert (vc-fossil--run "finfo" "-l" "-b" file))
+					;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
+	(goto-char (point-min))
+	(while (not (eobp))
+	  (setq line (buffer-substring-no-properties (point) (line-end-position)))
+					;(message line)
+	  (setq version (car (split-string line)))
+	  (setq newver (or newver (and found version)))
+	  (setq found  (string= version rev))
+	  (forward-line))
+	newver))))
 
 (defun vc-fossil-next-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
-  (if file
-      (with-temp-buffer
-	(let* ((found (not rev))
-	       (oldver nil)
-	       line version)
-	  (insert (vc-fossil--run "finfo" "-l" "-b" file))
-	  ;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
-	  (goto-char (point-min))
-	  (while (not (eobp))
-	    (setq line (buffer-substring-no-properties (point) (line-end-position)))
-	    (setq version (car (split-string line)))
-	    (setq found  (string= version rev))
-	    (setq oldver (or oldver found version))
-	    (forward-line))
-	  oldver))))
+  (when file
+    (with-temp-buffer
+      (let* ((found (not rev))
+	     (oldver nil)
+	     line version)
+	(insert (vc-fossil--run "finfo" "-l" "-b" file))
+					;(vc-fossil--call "fossil" "finfo" "-l" "-b" file)
+	(goto-char (point-min))
+	(while (not (eobp))
+	  (setq line (buffer-substring-no-properties (point) (line-end-position)))
+	  (setq version (car (split-string line)))
+	  (setq found  (string= version rev))
+	  (setq oldver (or oldver found version))
+	  (forward-line))
+	oldver))))
 
 
 (defun vc-fossil-delete-file (file)
