@@ -54,12 +54,11 @@
 
 (defun vc-fossil--run (&rest args)
   "Run a fossil command and return its output as a string"
-  (let* ((ok t)
-	 (str (with-output-to-string
-		(with-current-buffer standard-output
-		  (unless (apply #'vc-fossil--out-ok args)
-		    (setq ok nil))))))
-    (and ok str)))
+  (catch 'bail
+    (with-output-to-string
+      (with-current-buffer standard-output
+	(unless (apply #'vc-fossil--out-ok args)
+	  (throw 'bail nil))))))
 
 (defun vc-fossil-root (file)
   (vc-find-root file "_FOSSIL_"))
