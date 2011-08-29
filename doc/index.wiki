@@ -10,8 +10,9 @@ with versions 22.*.
 
 Short answer:
 
-Add this to your .emacs file, or cut and paste this into *scratch* buffer and do
-<code>C-x e</code> to execute it.   
+Add this to your .emacs file, or cut and paste this into the *scratch*
+buffer and do
+<code>C-x C-e</code> to execute it.
 
 <pre>
 (add-to-list 'vc-handled-backends 'Fossil)
