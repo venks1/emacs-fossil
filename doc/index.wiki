@@ -14,8 +14,7 @@ Add this to your .emacs file, or cut and paste this into *scratch* buffer and do
 <code>C-x e</code> to execute it.   
 
 <pre>
-(unless (memq 'Fossil vc-handled-backends)
-  (push 'Fossil vc-handled-backends))
+(add-to-list 'vc-handled-backends 'Fossil)
 (load-file "/path/to/this/project/vc/el/vc-fossil.el")
 </pre>
 

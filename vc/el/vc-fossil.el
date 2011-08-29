@@ -80,6 +80,7 @@
 
 ;;; STATE-QUERYING FUNCTIONS
 
+;;;###autoload
 (defun vc-fossil-registered (file)
   "Check whether FILE is registered with fossil."
   (with-temp-buffer
