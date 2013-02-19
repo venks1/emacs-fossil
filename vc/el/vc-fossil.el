@@ -61,7 +61,8 @@
 	  (throw 'bail nil))))))
 
 (defun vc-fossil-root (file)
-  (vc-find-root file "_FOSSIL_"))
+  (or (vc-find-root file ".fslckout")
+      (vc-find-root file "_FOSSIL_")))
 
 (defun vc-fossil-command (buffer okstatus file-or-list &rest flags)
   "A wrapper around `vc-do-command' for use in vc-fossil.el.
