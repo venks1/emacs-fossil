@@ -114,7 +114,7 @@
 
 (defun vc-fossil-working-revision (file)
   "Fossil Specific version of `vc-working-revision'."
-  (let ((line (vc-fossil--run "finfo" "-s" file)))
+  (let ((line (vc-fossil--run "finfo" "-s" (file-truename file))))
     (and line
 	 (cadr (split-string line)))))
 
@@ -224,7 +224,7 @@
 (defun vc-fossil-print-log (files buffer &optional shortlog start-revision limit)
   "Print full log for a file"
   (when files
-    (vc-fossil-command buffer 0 (car files) "finfo" "-l")
+    (vc-fossil-command buffer 0 (file-truename (car files)) "finfo" "-l")
     (vc-fossil-print-log (cdr files) buffer)))
 
 ;; TBD: log-entry
@@ -265,7 +265,7 @@
     (with-temp-buffer
       (let ((found (not rev))
 	    (newver nil))
-	(insert (vc-fossil--run "finfo" "-l" "-b" file))
+	(insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
 	;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
 	(goto-char (point-min))
 	(while (not (eobp))
@@ -283,7 +283,7 @@
     (with-temp-buffer
       (let ((found (not rev))
 	    (oldver nil))
-	(insert (vc-fossil--run "finfo" "-l" "-b" file))
+	(insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
 	;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
 	(goto-char (point-min))
 	(while (not (eobp))
@@ -296,9 +296,9 @@
 
 
 (defun vc-fossil-delete-file (file)
-  (vc-fossil-command nil 0 file "rm"))
+  (vc-fossil-command nil 0 (file-truename file) "rm"))
 
 (defun vc-fossil-rename-file (old new)
-  (vc-fossil-command nil 0 (list old new) "mv"))
+  (vc-fossil-command nil 0 (list (file-truename old) (file-truename new)) "mv"))
 
 (provide 'vc-fossil)
