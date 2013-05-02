@@ -224,7 +224,7 @@
 (defun vc-fossil-print-log (files buffer &optional shortlog start-revision limit)
   "Print full log for a file"
   (when files
-    (vc-fossil-command buffer 0 (file-truename (car files)) "finfo" "-l")
+    (vc-fossil-command buffer 0 (car files) "finfo" "-l")
     (vc-fossil-print-log (cdr files) buffer)))
 
 ;; TBD: log-entry
