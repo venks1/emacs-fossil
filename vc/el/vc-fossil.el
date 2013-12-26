@@ -107,8 +107,8 @@
 
 (defun vc-fossil-state  (file)
   "Fossil specific version of `vc-state'."
-  ;; (message (format "vc-fossil-state on %s" file))
-  (let ((line (vc-fossil--run "update" "-n" "-v" "current" file)))
+  ;; (message (format "vc-fossil-state on %s %s" file (file-truename file)))
+  (let ((line (vc-fossil--run "update" "-n" "-v" "current" (file-truename file))))
     (and line
 	 (vc-fossil-state-code (car (split-string line))))))
 
