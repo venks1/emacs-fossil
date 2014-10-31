@@ -203,7 +203,7 @@
 
 (defun vc-fossil-find-revision (file rev buffer)
   (apply #'vc-fossil-command buffer 0 file
-	 "finfo" `(,@(if (string= rev "")
+	 "finfo" `(,@(if (or (null rev) (string= rev ""))
 			 '()
 		       `("-r" ,rev)) "-p")))
 
