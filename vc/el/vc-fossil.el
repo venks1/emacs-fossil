@@ -126,21 +126,21 @@
   "Get Fossil status for all files in a directory"
   (insert (vc-fossil--run "update" "-n" "-v" "current" dir))
   (let ((result '())
-        (done nil)
         (root (vc-fossil-root dir)))
     (goto-char (point-min))
-    (while (and (not (eobp)) (not done))
-      (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
+    (while (not (eobp))
+      (let* ((line (buffer-substring-no-properties
+                    (point)
+                    (progn
+                      (forward-line)
+                      (point))))
              (status-word (car (split-string line))))
-        (setq done (string-match "-----" status-word))
-        (unless done
+        (if (string-match "-----" status-word)
+            (goto-char (point-max))
           (let ((file (substring line (+ (length status-word) 1))))
-            (let ((file (expand-file-name file root)))
-              (let ((file (file-relative-name file dir)))
-                (setq result
-                      (cons (list file (vc-fossil-state-code status-word))
-                            result)))))))
-      (forward-line))
+            (setq file (expand-file-name file root))
+            (setq file (file-relative-name file dir))
+            (push (list file (vc-fossil-state-code status-word)) result)))))
     (funcall update-function result nil)))
 
 (defun vc-fossil-after-dir-status (callback)
