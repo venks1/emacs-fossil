@@ -194,22 +194,16 @@ If `files` is nil return the status for all files."
 
 (defun vc-fossil-checkin (files rev comment)
   (apply 'vc-fossil-command nil 0 files "commit" "-m" comment
-         (if (stringp vc-checkin-switches)
-             (list vc-checkin-switches)
-           vc-checkin-switches)))
+         (vc-switches 'Fossil 'checkin)))
 
 (defun vc-fossil-find-revision (file rev buffer)
   (if (zerop (length rev))
       (apply #'vc-fossil-command buffer 0 file
              "cat"
-             (if (listp vc-checkout-switches)
-                 vc-checkout-switches
-               (list vc-checkout-switches)))
+             (vc-switches 'Fossil 'checkout))
     (apply #'vc-fossil-command buffer 0 file
            "cat" "-r" rev
-           (if (listp vc-checkout-switches)
-               vc-checkout-switches
-             (list vc-checkout-switches)))))
+           (vc-switches 'Fossil 'checkout))))
 
 (defun vc-fossil-checkout (file &optional editable rev)
   (apply #'vc-fossil-command nil 0 file
@@ -218,9 +212,7 @@ If `files` is nil return the status for all files."
                   ((eq rev t) nil)
                   (rev (list rev))
                   (t nil))
-                 (if (listp vc-checkout-switches)
-                     vc-checkout-switches
-                   (list vc-checkout-switches)))))
+                 (vc-switches 'Fossil 'checkout))))
 
 (defun vc-fossil-revert (file &optional contents-done)
   "Revert FILE to the version stored in the fossil repository."
