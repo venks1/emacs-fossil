@@ -234,11 +234,34 @@ If `files` is nil return the status for all files."
 
 (defun vc-fossil-print-log (files buffer &optional shortlog start-revision limit)
   "Print full log for a file"
-  (when files
-    (vc-fossil-command buffer 0 (car files) "finfo" "-l")
-    (vc-fossil-print-log (cdr files) buffer)))
+  (vc-setup-buffer buffer)
+  (let ((inhibit-read-only t))
+    (with-current-buffer buffer
+      (dolist (file files)
+        (apply #'vc-fossil-command buffer 0 nil "timeline"
+               (nconc
+                (when start-revision (list "before" start-revision))
+                (when limit (list "-n" (number-to-string limit)))
+                (list "-p" file)))))))
 
-;; TBD: log-entry
+(define-derived-mode vc-fossil-log-view-mode log-view-mode "Fossil-Log-View"
+  (require 'add-log) ;; we need the add-log faces
+  (set (make-local-variable 'log-view-file-re) "\\`a\\`")
+  (set (make-local-variable 'log-view-per-file-logs) nil)
+  (set (make-local-variable 'log-view-message-re)
+       "^[0-9:]+ \\[\\([0-9a-fA-F]*\\)\\] \\(?:\\*[^*]*\\*\\)? ?\\(.*\\)")
+  (set (make-local-variable 'log-view-font-lock-keywords)
+       (append
+        '(
+          ("^\\([0-9:]*\\) \\(\\[[[:alnum:]]*\\]\\) \\(\\(?:\\*[[:word:]]*\\*\\)?\\) ?\\(.*?\\) (user: \\([[:word:]]*\\) tags: \\(.*\\))"
+           (1 'change-log-date)
+           (2 'change-log-name)
+           (3 'highlight)
+           (4 'log-view-message)
+           (5 'change-log-name)
+           (6 'highlight))
+          ("^=== \\(.*\\) ==="
+           (1 'change-log-date))))))
 
 (defun vc-fossil-diff (file &optional rev1 rev2 buffer)
   "Get Differences for a file"
