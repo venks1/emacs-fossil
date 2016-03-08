@@ -311,3 +311,5 @@ If `files` is nil return the status for all files."
   (vc-fossil-command nil 0 (list (file-truename old) (file-truename new)) "mv" "--hard"))
 
 (provide 'vc-fossil)
+
+;;; vc-fossil.el ends here
