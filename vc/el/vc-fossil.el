@@ -39,6 +39,22 @@
 
 (eval-when-compile (require 'vc))
 
+;;; Customization
+
+(defgroup vc-fossil nil
+  "VC Fossil backend."
+  :group 'vc)
+
+(defcustom vc-fossil-diff-switches t ; Fossil doesn't support common args like -u
+  "String or list of strings specifying switches for Fossil diff under VC.
+If nil, use the value of `vc-diff-switches'.  If t, use no switches."
+  :type '(choice (const :tag "Unspecified" nil)
+                 (const :tag "None" t)
+                 (string :tag "Argument String")
+                 (repeat :tag "Argument List" :value ("") string))
+  :group 'vc-fossil)
+
+
 ;;; BACKEND PROPERTIES
 
 (defun vc-fossil-revision-granularity () 'repository)
@@ -260,8 +276,10 @@ If `files` is nil return the status for all files."
   (let ((buf (or buffer "*vc-diff*")))
     (apply #'vc-fossil-command
            buf 0 file "diff" "-i"
-           `(,@(if rev1 `("--from" ,rev1) '())
-             ,@(if rev2 `("--to" ,rev2) '())))))
+           (nconc
+            (and rev1 (list "--from" rev1))
+            (and rev2 (list "--to" rev2))
+            (vc-switches 'Fossil 'diff)))))
 
 ;;; TAG SYSTEM
 
