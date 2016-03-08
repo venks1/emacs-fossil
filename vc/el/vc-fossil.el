@@ -305,9 +305,9 @@ If `files` is nil return the status for all files."
 
 
 (defun vc-fossil-delete-file (file)
-  (vc-fossil-command nil 0 (file-truename file) "rm"))
+  (vc-fossil-command nil 0 (file-truename file) "rm" "--hard"))
 
 (defun vc-fossil-rename-file (old new)
-  (vc-fossil-command nil 0 (list (file-truename old) (file-truename new)) "mv"))
+  (vc-fossil-command nil 0 (list (file-truename old) (file-truename new)) "mv" "--hard"))
 
 (provide 'vc-fossil)
