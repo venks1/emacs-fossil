@@ -281,6 +281,27 @@ If `files` is nil return the status for all files."
             (and rev2 (list "--to" rev2))
             (vc-switches 'Fossil 'diff)))))
 
+(defun vc-fossil-annotate-command (file buffer &optional rev)
+  "Execute \"fossil annotate\" on FILE, inserting the contents in BUFFER.
+If REV is specified, annotate that revision."
+  ;;(assert (not rev) nil "Annotating a revision not supported")
+  (vc-fossil-command buffer 0 file "annotate"))
+
+(defconst vc-fossil-annotate-re
+  "\\([[:word:]]+\\)\\s-+\\([-0-9]+\\)\\s-+[0-9]+: ")
+
+(defun vc-fossil-annotate-time ()
+  (when (looking-at vc-fossil-annotate-re)
+    (goto-char (match-end 0))
+    (vc-annotate-convert-time
+     (date-to-time (format "%s 00:00:00" (match-string-no-properties 2))))))
+
+;; TODO: currently only the date is used, not the time
+(defun vc-fossil-annotate-extract-revision-at-line ()
+  (when (looking-at vc-fossil-annotate-re)
+    (goto-char (match-end 0))
+    (match-string-no-properties 1)))
+
 ;;; TAG SYSTEM
 
 ;; FIXME: we need a convenience function to check that there's nothing checked
