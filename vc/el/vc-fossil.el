@@ -199,10 +199,13 @@ If `files` is nil return the status for all files."
            vc-checkin-switches)))
 
 (defun vc-fossil-find-revision (file rev buffer)
-  (apply #'vc-fossil-command buffer 0 file
-         "finfo" `(,@(if (or (null rev) (string= rev ""))
-                         '()
-                       `("-r" ,rev)) "-p")))
+  (if (zerop (length rev))
+      (apply #'vc-fossil-command buffer 0 file
+             "cat"
+             vc-checkout-switches)
+    (apply #'vc-fossil-command buffer 0 file
+           "cat" "-r" rev
+           vc-checkout-switches)))
 
 (defun vc-fossil-checkout (file &optional editable rev)
   (apply #'vc-fossil-command nil 0 nil
