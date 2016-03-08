@@ -208,8 +208,15 @@ If `files` is nil return the status for all files."
            vc-checkout-switches)))
 
 (defun vc-fossil-checkout (file &optional editable rev)
-  (apply #'vc-fossil-command nil 0 nil
-         "update" `(,@(if (eq rev t) '() `(,rev)))))
+  (apply #'vc-fossil-command nil 0 file
+         "update"
+         (append (cond
+                  ((eq rev t) nil)
+                  (rev (list rev))
+                  (t nil))
+                 (if (listp vc-checkout-switches)
+                     vc-checkout-switches
+                   (list vc-checkout-switches)))))
 
 (defun vc-fossil-revert (file &optional contents-done)
   "Revert FILE to the version stored in the fossil repository."
