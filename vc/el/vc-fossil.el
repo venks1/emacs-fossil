@@ -123,24 +123,37 @@
 
 
 (defun vc-fossil-dir-status (dir update-function)
-  "Get Fossil status for all files in a directory"
-  (insert (vc-fossil--run "update" "-n" "-v" "current" dir))
+  "Get fossil status for all files in a directory"
+  (vc-fossil-dir-status-files dir nil nil update-function))
+
+(defun vc-fossil-dir-status-files (dir files default-state update-function)
+  "Get fossil status for all specified files in a directory.
+If `files` is nil return the status for all files."
+  (insert (apply 'vc-fossil--run "update" "-n" "-v" "current"
+                 (or files (list dir))))
   (let ((result '())
         (root (vc-fossil-root dir)))
     (goto-char (point-min))
     (while (not (eobp))
-      (let* ((line (buffer-substring-no-properties
-                    (point)
-                    (progn
-                      (forward-line)
-                      (point))))
+      (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
              (status-word (car (split-string line))))
         (if (string-match "-----" status-word)
             (goto-char (point-max))
           (let ((file (substring line (+ (length status-word) 1))))
             (setq file (expand-file-name file root))
             (setq file (file-relative-name file dir))
-            (push (list file (vc-fossil-state-code status-word)) result)))))
+            (push (list file (vc-fossil-state-code status-word)) result)))
+        (forward-line)))
+    ;; now collect untracked files
+    (delete-region (point-min) (point-max))
+    (insert (apply 'vc-fossil--run "extras" "--dotfiles" (or files (list dir))))
+    (goto-char (point-min))
+    (while (not (eobp))
+      (let ((file (buffer-substring-no-properties (point) (line-end-position))))
+        (setq file (expand-file-name file dir))
+        (setq file (file-relative-name file dir))
+        (push (list file (vc-fossil-state-code nil)) result)
+        (forward-line)))
     (funcall update-function result nil)))
 
 (defun vc-fossil-checkout-model (files) 'implicit)
