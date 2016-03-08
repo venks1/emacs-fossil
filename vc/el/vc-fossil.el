@@ -145,7 +145,6 @@
 
 (defun vc-fossil-after-dir-status (callback)
   "Function to call after the status process has finished"
-  (message "after-dir-status called %s" (buffer-string))
   (let ((result '()))
     (goto-char (point-min))
     (while (not (eobp))
