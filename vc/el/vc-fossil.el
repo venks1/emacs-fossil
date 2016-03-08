@@ -143,20 +143,6 @@
             (push (list file (vc-fossil-state-code status-word)) result)))))
     (funcall update-function result nil)))
 
-(defun vc-fossil-after-dir-status (callback)
-  "Function to call after the status process has finished"
-  (let ((result '()))
-    (goto-char (point-min))
-    (while (not (eobp))
-      (let ((line (buffer-substring-no-properties (point) (line-end-position)))
-            (status-word '()))
-        (message line)
-        (let* ((state (vc-fossil-state-code (car (split-string line))))
-               (file (expand-file-name (substring line (+ (length status-word) 1)))))
-          (setq result (cons (list file state) result))))
-      (forward-line))
-    (funcall callback result t)))
-
 (defun vc-fossil-checkout-model (files) 'implicit)
 
 (defun vc-fossil-dir-extra-headers (dir)
