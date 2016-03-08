@@ -57,8 +57,8 @@
   (catch 'bail
     (with-output-to-string
       (with-current-buffer standard-output
-	(unless (apply #'vc-fossil--out-ok args)
-	  (throw 'bail nil))))))
+        (unless (apply #'vc-fossil--out-ok args)
+          (throw 'bail nil))))))
 
 (defun vc-fossil-root (file)
   (or (vc-find-root file ".fslckout")
@@ -71,10 +71,10 @@
 
 (defun vc-fossil-get-id (dir)
   (let* ((default-directory dir)
-	 (info (vc-fossil--run "info"))
-	 (pos (string-match "checkout: *\\([0-9a-fA-F]+\\)" info))
-	 (uid (match-string 1 info))
-	 )
+         (info (vc-fossil--run "info"))
+         (pos (string-match "checkout: *\\([0-9a-fA-F]+\\)" info))
+         (uid (match-string 1 info))
+         )
     (substring uid 0 9)))
 
 ;;; STATE-QUERYING FUNCTIONS
@@ -84,24 +84,24 @@
   "Check whether FILE is registered with fossil."
   (with-temp-buffer
     (let* ((str (ignore-errors
-		  (vc-fossil--out-ok "finfo" "-s" (file-truename file))
-		  (buffer-string))))
+                  (vc-fossil--out-ok "finfo" "-s" (file-truename file))
+                  (buffer-string))))
       (and str
-	   (> (length str) 7)
-	   (not (string= (substring str 0 7) "unknown"))))))
+           (> (length str) 7)
+           (not (string= (substring str 0 7) "unknown"))))))
 
 (defun vc-fossil-state-code (code)
-  (cond ((not code)		    'unregistered)
-	((string= code "UNKNOWN")   'unregistered)
-	((string= code "UNCHANGED") 'up-to-date)
-	((string= code "CONFLICT")  'edited)
-	((string= code "ADDED")     'added)
-	((string= code "ADD")       'needs-update)
-	((string= code "EDITED")    'edited)
-	((string= code "REMOVE")    'removed)
-	((string= code "UPDATE")    'needs-update)
-	((string= code "MERGE")     'needs-merge)
-	(t			    nil)))
+  (cond ((not code)         'unregistered)
+        ((string= code "UNKNOWN")   'unregistered)
+        ((string= code "UNCHANGED") 'up-to-date)
+        ((string= code "CONFLICT")  'edited)
+        ((string= code "ADDED")     'added)
+        ((string= code "ADD")       'needs-update)
+        ((string= code "EDITED")    'edited)
+        ((string= code "REMOVE")    'removed)
+        ((string= code "UPDATE")    'needs-update)
+        ((string= code "MERGE")     'needs-merge)
+        (t           nil)))
 
 ;; (vc-fossil-state "/proj/fiesta/tools/fossil/emacs-fossil/vc/el/vc-fossil.el")
 
@@ -110,13 +110,13 @@
   ;; (message (format "vc-fossil-state on %s %s" file (file-truename file)))
   (let ((line (vc-fossil--run "update" "-n" "-v" "current" (file-truename file))))
     (and line
-	 (vc-fossil-state-code (car (split-string line))))))
+         (vc-fossil-state-code (car (split-string line))))))
 
 (defun vc-fossil-working-revision (file)
   "Fossil Specific version of `vc-working-revision'."
   (let ((line (vc-fossil--run "finfo" "-s" (file-truename file))))
     (and line
-	 (cadr (split-string line)))))
+         (cadr (split-string line)))))
 
 (defun vc-fossil-workfile-unchanged-p (file)
   (eq 'up-to-date (vc-fossil-state file)))
@@ -130,20 +130,20 @@
   ;; (message dir)
   (insert (vc-fossil--run "update" "-n" "-v" "current" dir))
   (let ((result '())
-	(done nil)
-	(root (vc-fossil-root dir)))
+        (done nil)
+        (root (vc-fossil-root dir)))
     (goto-char (point-min))
     (while (and (not (eobp)) (not done))
       (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
-	     (status-word (car (split-string line))))
-	(setq done (string-match "-----" status-word))
-	(unless done
-	  (let ((file (substring line (+ (length status-word) 1))))
-	    (let ((file (expand-file-name file root)))
-	      (let ((file (file-relative-name file dir)))
-		(setq result
-		      (cons (list file (vc-fossil-state-code status-word))
-			    result)))))))
+             (status-word (car (split-string line))))
+        (setq done (string-match "-----" status-word))
+        (unless done
+          (let ((file (substring line (+ (length status-word) 1))))
+            (let ((file (expand-file-name file root)))
+              (let ((file (file-relative-name file dir)))
+                (setq result
+                      (cons (list file (vc-fossil-state-code status-word))
+                            result)))))))
       (forward-line))
     (funcall update-function result nil)))
 
@@ -154,11 +154,11 @@
     (goto-char (point-min))
     (while (not (eobp))
       (let ((line (buffer-substring-no-properties (point) (line-end-position)))
-	    (status-word '()))
-	(message line)
-	(let* ((state (vc-fossil-state-code (car (split-string line))))
-	       (file (expand-file-name (substring line (+ (length status-word) 1)))))
-	  (setq result (cons (list file state) result))))
+            (status-word '()))
+        (message line)
+        (let* ((state (vc-fossil-state-code (car (split-string line))))
+               (file (expand-file-name (substring line (+ (length status-word) 1)))))
+          (setq result (cons (list file state) result))))
       (forward-line))
     (funcall callback result t)))
 
@@ -166,13 +166,13 @@
 
 (defun vc-fossil-dir-extra-headers (dir)
   (let* ((info (vc-fossil--run "info"))
-	 (posco (string-match "checkout: *\\([0-9a-fA-F]+\\) \\([-0-9: ]+ UTC\\)" info))
-	 (coid (substring (match-string 1 info) 0 9))
-	 (cots (format-time-string "%Y-%m-%d %H:%M:%S %Z"
-				   (safe-date-to-time (match-string 2 info))))
-	 (postag (string-match "tags: *\\(.*\\)" info))
-	 (tags (match-string 1 info))
-	 )
+         (posco (string-match "checkout: *\\([0-9a-fA-F]+\\) \\([-0-9: ]+ UTC\\)" info))
+         (coid (substring (match-string 1 info) 0 9))
+         (cots (format-time-string "%Y-%m-%d %H:%M:%S %Z"
+                                   (safe-date-to-time (match-string 2 info))))
+         (postag (string-match "tags: *\\(.*\\)" info))
+         (tags (match-string 1 info))
+         )
     (concat
      (propertize "Checkout   : " 'face 'font-lock-type-face)
      (propertize (concat coid " " cots) 'face 'font-lock-variable-name-face)
@@ -203,13 +203,13 @@
 
 (defun vc-fossil-find-revision (file rev buffer)
   (apply #'vc-fossil-command buffer 0 file
-	 "finfo" `(,@(if (or (null rev) (string= rev ""))
-			 '()
-		       `("-r" ,rev)) "-p")))
+         "finfo" `(,@(if (or (null rev) (string= rev ""))
+                         '()
+                       `("-r" ,rev)) "-p")))
 
 (defun vc-fossil-checkout (file &optional editable rev)
   (apply #'vc-fossil-command nil 0 nil
-	 "update" `(,@(if (eq rev t) '() `(,rev)))))
+         "update" `(,@(if (eq rev t) '() `(,rev)))))
 
 (defun vc-fossil-revert (file &optional contents-done)
   "Revert FILE to the version stored in the fossil repository."
@@ -234,9 +234,9 @@
   ;; (message (format "Get diffs between rev <%s> and <%s> for file <%s>" rev1 rev2 file))
   (let ((buf (or buffer "*vc-diff*")))
     (apply #'vc-fossil-command
-	   buf 0 file "diff" "-i"
-	   `(,@(if rev1 `("--from" ,rev1) '())
-	     ,@(if rev2 `("--to" ,rev2) '())))))
+           buf 0 file "diff" "-i"
+           `(,@(if rev1 `("--from" ,rev1) '())
+             ,@(if rev2 `("--to" ,rev2) '())))))
 
 ;;; TAG SYSTEM
 
@@ -245,11 +245,11 @@
 
 (defun vc-fossil-create-tag (file name branchp)
   (let* ((dir (if (file-directory-p file) file (file-name-directory file)))
-	 (default-directory dir))
+         (default-directory dir))
     (apply #'vc-fossil-command nil 0 nil `(,@(if branchp
-						 '("branch" "new")
-					       '("tag" "add"))
-					   ,name ,(vc-fossil-get-id dir)))))
+                                                 '("branch" "new")
+                                               '("tag" "add"))
+                                           ,name ,(vc-fossil-get-id dir)))))
 
 ;; FIXME: we should update buffers if update is non-nill
 
@@ -264,35 +264,35 @@
   (when file
     (with-temp-buffer
       (let ((found (not rev))
-	    (newver nil))
-	(insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
-	;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
-	(goto-char (point-min))
-	(while (not (eobp))
-	  (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
-		 (version (car (split-string line))))
-	    ;; (message line)
-	    (setq newver (or newver (and found version)))
-	    (setq found  (string= version rev)))
-	  (forward-line))
-	newver))))
+            (newver nil))
+        (insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
+        ;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
+        (goto-char (point-min))
+        (while (not (eobp))
+          (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
+                 (version (car (split-string line))))
+            ;; (message line)
+            (setq newver (or newver (and found version)))
+            (setq found  (string= version rev)))
+          (forward-line))
+        newver))))
 
 (defun vc-fossil-next-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
   (when file
     (with-temp-buffer
       (let ((found (not rev))
-	    (oldver nil))
-	(insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
-	;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
-	(goto-char (point-min))
-	(while (not (eobp))
-	  (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
-		 (version (car (split-string line))))
-	    (setq found  (string= version rev))
-	    (setq oldver (or oldver found version)))
-	  (forward-line))
-	oldver))))
+            (oldver nil))
+        (insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
+        ;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
+        (goto-char (point-min))
+        (while (not (eobp))
+          (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
+                 (version (car (split-string line))))
+            (setq found  (string= version rev))
+            (setq oldver (or oldver found version)))
+          (forward-line))
+        oldver))))
 
 
 (defun vc-fossil-delete-file (file)
