@@ -91,7 +91,7 @@
            (not (string= (substring str 0 7) "unknown"))))))
 
 (defun vc-fossil-state-code (code)
-  (cond ((not code)         'unregistered)
+  (cond ((not code)                 'unregistered)
         ((string= code "UNKNOWN")   'unregistered)
         ((string= code "UNCHANGED") 'up-to-date)
         ((string= code "CONFLICT")  'edited)
@@ -103,11 +103,8 @@
         ((string= code "MERGE")     'needs-merge)
         (t           nil)))
 
-;; (vc-fossil-state "/proj/fiesta/tools/fossil/emacs-fossil/vc/el/vc-fossil.el")
-
 (defun vc-fossil-state  (file)
   "Fossil specific version of `vc-state'."
-  ;; (message (format "vc-fossil-state on %s %s" file (file-truename file)))
   (let ((line (vc-fossil--run "update" "-n" "-v" "current" (file-truename file))))
     (and line
          (vc-fossil-state-code (car (split-string line))))))
@@ -127,7 +124,6 @@
 
 (defun vc-fossil-dir-status (dir update-function)
   "Get Fossil status for all files in a directory"
-  ;; (message dir)
   (insert (vc-fossil--run "update" "-n" "-v" "current" dir))
   (let ((result '())
         (done nil)
@@ -231,7 +227,6 @@
 
 (defun vc-fossil-diff (file &optional rev1 rev2 buffer)
   "Get Differences for a file"
-  ;; (message (format "Get diffs between rev <%s> and <%s> for file <%s>" rev1 rev2 file))
   (let ((buf (or buffer "*vc-diff*")))
     (apply #'vc-fossil-command
            buf 0 file "diff" "-i"
@@ -271,7 +266,6 @@
         (while (not (eobp))
           (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
                  (version (car (split-string line))))
-            ;; (message line)
             (setq newver (or newver (and found version)))
             (setq found  (string= version rev)))
           (forward-line))
