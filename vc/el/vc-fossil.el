@@ -193,7 +193,10 @@ If `files` is nil return the status for all files."
 
 
 (defun vc-fossil-checkin (files rev comment)
-  (vc-fossil-command nil 0 files "commit" "-m" comment))
+  (apply 'vc-fossil-command nil 0 files "commit" "-m" comment
+         (if (stringp vc-checkin-switches)
+             (list vc-checkin-switches)
+           vc-checkin-switches)))
 
 (defun vc-fossil-find-revision (file rev buffer)
   (apply #'vc-fossil-command buffer 0 file
