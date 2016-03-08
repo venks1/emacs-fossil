@@ -202,10 +202,14 @@ If `files` is nil return the status for all files."
   (if (zerop (length rev))
       (apply #'vc-fossil-command buffer 0 file
              "cat"
-             vc-checkout-switches)
+             (if (listp vc-checkout-switches)
+                 vc-checkout-switches
+               (list vc-checkout-switches)))
     (apply #'vc-fossil-command buffer 0 file
            "cat" "-r" rev
-           vc-checkout-switches)))
+           (if (listp vc-checkout-switches)
+               vc-checkout-switches
+             (list vc-checkout-switches)))))
 
 (defun vc-fossil-checkout (file &optional editable rev)
   (apply #'vc-fossil-command nil 0 file
