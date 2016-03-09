@@ -356,21 +356,23 @@ If REV is specified, annotate that revision."
 
 (defun vc-fossil-next-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
-  (when file
-    (with-temp-buffer
-      (let ((found (not rev))
-            (oldver nil))
-        (insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
-        ;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
-        (goto-char (point-min))
-        (while (not (eobp))
-          (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
-                 (version (car (split-string line))))
-            (setq found  (string= version rev))
-            (setq oldver (or oldver found version)))
-          (forward-line))
-        oldver))))
-
+  (if file
+      (with-temp-buffer
+        (let ((found (not rev))
+              (oldver nil))
+          (vc-fossil-command t 0 (file-truename file) "finfo" "-l" "-b")
+          ;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
+          (goto-char (point-min))
+          (while (not (eobp))
+            (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
+                   (version (car (split-string line))))
+              (setq found  (string= version rev))
+              (setq oldver (or oldver found version)))
+            (forward-line))
+          oldver))
+    (let ((info (vc-fossil--run "info" rev)))
+      (and (string-match "child: *\\([0-9a-fA-F]+\\)" info)
+           (match-string 1 info)))))
 
 (defun vc-fossil-delete-file (file)
   (vc-fossil-command nil 0 (file-truename file) "rm" "--hard"))
