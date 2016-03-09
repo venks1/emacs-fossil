@@ -8,7 +8,7 @@
 
 ;;; Installation:
 
-;; 1. Put this file somewhere in the emacs load-path.
+;; 1. Put this file somewhere in the Emacs load-path.
 ;; 2. Tell Emacs to load it when needed:
 ;;    (autoload 'vc-fossil-registered "vc-fossil")
 ;; 3. Add Fossil to the list of supported backends:
@@ -37,7 +37,11 @@
 ;; - delete-file (file)
 ;; - rename-file (old new)
 
+;;; Code:
+
 (eval-when-compile (require 'vc))
+
+(autoload 'vc-switches "vc")
 
 ;;; Customization
 
@@ -239,6 +243,8 @@ If `files` is nil return the status for all files."
 ;; FIXME, we actually already have short, start and limit, need to
 ;; add it into the code
 
+(autoload 'vc-setup-buffer "vc-dispatcher")
+
 (defun vc-fossil-print-log (files buffer &optional shortlog start-revision limit)
   "Print full log for a file"
   (vc-setup-buffer buffer)
@@ -250,6 +256,11 @@ If `files` is nil return the status for all files."
                 (when start-revision (list "before" start-revision))
                 (when limit (list "-n" (number-to-string limit)))
                 (list "-p" (file-relative-name (expand-file-name file)))))))))
+
+(defvar log-view-message-re)
+(defvar log-view-file-re)
+(defvar log-view-font-lock-keywords)
+(defvar log-view-per-file-logs)
 
 (define-derived-mode vc-fossil-log-view-mode log-view-mode "Fossil-Log-View"
   (require 'add-log) ;; we need the add-log faces
@@ -289,6 +300,8 @@ If `files` is nil return the status for all files."
              (rev2 (list "--from" (or rev1 "current") "--to" rev2))
              (rev1 (list "--from" rev1)))
             (vc-switches 'Fossil 'diff)))))
+
+(declare-function vc-annotate-convert-time "vc-annotate" (time))
 
 (defun vc-fossil-annotate-command (file buffer &optional rev)
   "Execute \"fossil annotate\" on FILE, inserting the contents in BUFFER.
