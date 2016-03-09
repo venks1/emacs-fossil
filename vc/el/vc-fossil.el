@@ -341,7 +341,7 @@ If REV is specified, annotate that revision."
       (with-temp-buffer
         (let ((found (not rev))
               (newver nil))
-          (insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
+          (vc-fossil-command t 0 (file-truename file) "finfo" "-l" "-b")
           ;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
           (goto-char (point-min))
           (while (not (eobp))
