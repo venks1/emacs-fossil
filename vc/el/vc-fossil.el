@@ -279,8 +279,9 @@ If `files` is nil return the status for all files."
     (apply #'vc-fossil-command
            buf 0 file "diff" "-i"
            (nconc
-            (and rev1 (list "--from" rev1))
-            (and rev2 (list "--to" rev2))
+            (cond
+             (rev2 (list "--from" (or rev1 "current") "--to" rev2))
+             (rev1 (list "--from" rev1)))
             (vc-switches 'Fossil 'diff)))))
 
 (defun vc-fossil-annotate-command (file buffer &optional rev)
