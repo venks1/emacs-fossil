@@ -328,20 +328,23 @@ If REV is specified, annotate that revision."
 
 (defun vc-fossil-previous-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
-  (when file
-    (with-temp-buffer
-      (let ((found (not rev))
-            (newver nil))
-        (insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
-        ;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
-        (goto-char (point-min))
-        (while (not (eobp))
-          (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
-                 (version (car (split-string line))))
-            (setq newver (or newver (and found version)))
-            (setq found  (string= version rev)))
-          (forward-line))
-        newver))))
+  (if file
+      (with-temp-buffer
+        (let ((found (not rev))
+              (newver nil))
+          (insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
+          ;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
+          (goto-char (point-min))
+          (while (not (eobp))
+            (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
+                   (version (car (split-string line))))
+              (setq newver (or newver (and found version)))
+              (setq found  (string= version rev)))
+            (forward-line))
+          newver))
+    (let ((info (vc-fossil--run "info" rev)))
+      (and (string-match "parent: *\\([0-9a-fA-F]+\\)" info)
+           (match-string 1 info)))))
 
 (defun vc-fossil-next-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
