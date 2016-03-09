@@ -254,7 +254,7 @@ If `files` is nil return the status for all files."
 
 (define-derived-mode vc-fossil-log-view-mode log-view-mode "Fossil-Log-View"
   (require 'add-log) ;; we need the add-log faces
-  (toggle-word-wrap 1)
+  (setq word-wrap t)
   (set (make-local-variable 'wrap-prefix) "                      ")
   (set (make-local-variable 'log-view-file-re) "\\`a\\`")
   (set (make-local-variable 'log-view-per-file-logs) nil)
