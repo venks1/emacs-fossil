@@ -336,31 +336,37 @@ If REV is specified, annotate that revision."
 
 (defun vc-fossil-previous-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
-  (if file
-      (with-temp-buffer
-        (vc-fossil-command t 0 (file-truename file) "finfo" "-l" "-b")
-        (goto-char (point-min))
-        (and (re-search-forward (concat "^" (regexp-quote rev)))
-             (zerop (forward-line))
-             (looking-at "^\\([0-9a-zA-Z]+\\)")
-             (match-string 1)))
-    (let ((info (vc-fossil--run "info" rev)))
-      (and (string-match "parent: *\\([0-9a-fA-F]+\\)" info)
-           (match-string 1 info)))))
+  (with-temp-buffer
+    (cond
+     (file
+      (vc-fossil-command t 0 (file-truename file) "finfo" "-l" "-b")
+      (goto-char (point-min))
+      (and (re-search-forward (concat "^" (regexp-quote rev)) nil t)
+           (zerop (forward-line))
+           (looking-at "^\\([0-9a-zA-Z]+\\)")
+           (match-string 1)))
+     (t
+      (vc-fossil-command t 0 nil "info" rev)
+      (goto-char (point-min))
+      (and (re-search-forward "parent: *\\([0-9a-fA-F]+\\)" nil t)
+           (match-string 1))))))
 
 (defun vc-fossil-next-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
-  (if file
-      (with-temp-buffer
-        (vc-fossil-command t 0 (file-truename file) "finfo" "-l" "-b")
-        (goto-char (point-min))
-        (and (re-search-forward (concat "^" (regexp-quote rev)))
-             (zerop (forward-line -1))
-             (looking-at "^\\([0-9a-zA-Z]+\\)")
-             (match-string 1)))
-    (let ((info (vc-fossil--run "info" rev)))
-      (and (string-match "child: *\\([0-9a-fA-F]+\\)" info)
-           (match-string 1 info)))))
+  (with-temp-buffer
+    (cond
+     (file
+      (vc-fossil-command t 0 (file-truename file) "finfo" "-l" "-b")
+      (goto-char (point-min))
+      (and (re-search-forward (concat "^" (regexp-quote rev)) nil t)
+           (zerop (forward-line -1))
+           (looking-at "^\\([0-9a-zA-Z]+\\)")
+           (match-string 1)))
+     (t
+      (vc-fossil-command t 0 nil "info" rev)
+      (goto-char (point-min))
+      (and (re-search-forward "child: *\\([0-9a-fA-F]+\\)" nil t)
+           (match-string 1))))))
 
 (defun vc-fossil-delete-file (file)
   (vc-fossil-command nil 0 (file-truename file) "rm" "--hard"))
