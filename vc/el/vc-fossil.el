@@ -273,11 +273,18 @@ If `files` is nil return the status for all files."
           ("^=== \\(.*\\) ==="
            (1 'change-log-date))))))
 
-(defun vc-fossil-diff (file &optional rev1 rev2 buffer)
+;; TODO: implement diff for directories
+(defun vc-fossil-diff (files &optional rev1 rev2 buffer)
   "Get Differences for a file"
-  (let ((buf (or buffer "*vc-diff*")))
+  (let ((buf (or buffer "*vc-diff*"))
+        (root (and files (expand-file-name (vc-fossil-root (car files))))))
+    ;; if we diff the root directory, do not specify a file
+    (if (or (null files)
+            (and (null (cdr files))
+                 (equal root (expand-file-name (car files)))))
+        (setq files nil))
     (apply #'vc-fossil-command
-           buf 0 file "diff" "-i"
+           buf 0 files "diff" "-i"
            (nconc
             (cond
              (rev2 (list "--from" (or rev1 "current") "--to" rev2))
