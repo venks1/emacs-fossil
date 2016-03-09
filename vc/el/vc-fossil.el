@@ -213,13 +213,11 @@ If `files` is nil return the status for all files."
          (vc-switches 'Fossil 'checkin)))
 
 (defun vc-fossil-find-revision (file rev buffer)
-  (if (zerop (length rev))
-      (apply #'vc-fossil-command buffer 0 file
-             "cat"
-             (vc-switches 'Fossil 'checkout))
-    (apply #'vc-fossil-command buffer 0 file
-           "cat" "-r" rev
-           (vc-switches 'Fossil 'checkout))))
+  (apply #'vc-fossil-command buffer 0 file
+         "cat"
+         (nconc
+          (unless (zerop (length rev)) (list "-r" rev))
+          (vc-switches 'Fossil 'checkout))))
 
 (defun vc-fossil-checkout (file &optional editable rev)
   (apply #'vc-fossil-command nil 0 file
