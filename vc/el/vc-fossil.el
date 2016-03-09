@@ -300,17 +300,19 @@ If REV is specified, annotate that revision."
 (defconst vc-fossil-annotate-re
   "\\([[:word:]]+\\)\\s-+\\([-0-9]+\\)\\s-+[0-9]+: ")
 
+;; TODO: currently only the date is used, not the time
 (defun vc-fossil-annotate-time ()
   (when (looking-at vc-fossil-annotate-re)
     (goto-char (match-end 0))
     (vc-annotate-convert-time
      (date-to-time (format "%s 00:00:00" (match-string-no-properties 2))))))
 
-;; TODO: currently only the date is used, not the time
 (defun vc-fossil-annotate-extract-revision-at-line ()
-  (when (looking-at vc-fossil-annotate-re)
-    (goto-char (match-end 0))
-    (match-string-no-properties 1)))
+  (save-excursion
+    (beginning-of-line)
+    (when (looking-at vc-fossil-annotate-re)
+      (goto-char (match-end 0))
+      (match-string-no-properties 1))))
 
 ;;; TAG SYSTEM
 
