@@ -250,7 +250,7 @@ If `files` is nil return the status for all files."
                (nconc
                 (when start-revision (list "before" start-revision))
                 (when limit (list "-n" (number-to-string limit)))
-                (list "-p" file)))))))
+                (list "-p" (expand-file-name file))))))))
 
 (define-derived-mode vc-fossil-log-view-mode log-view-mode "Fossil-Log-View"
   (require 'add-log) ;; we need the add-log faces
