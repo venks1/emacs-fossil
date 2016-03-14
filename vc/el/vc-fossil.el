@@ -8,7 +8,7 @@
 
 ;;; Installation:
 
-;; 1. Put this file somewhere in the emacs load-path.
+;; 1. Put this file somewhere in the Emacs load-path.
 ;; 2. Tell Emacs to load it when needed:
 ;;    (autoload 'vc-fossil-registered "vc-fossil")
 ;; 3. Add Fossil to the list of supported backends:
@@ -37,7 +37,11 @@
 ;; - delete-file (file)
 ;; - rename-file (old new)
 
+;;; Code:
+
 (eval-when-compile (require 'vc))
+
+(autoload 'vc-switches "vc")
 
 ;;; Customization
 
@@ -213,22 +217,21 @@ If `files` is nil return the status for all files."
          (vc-switches 'Fossil 'checkin)))
 
 (defun vc-fossil-find-revision (file rev buffer)
-  (if (zerop (length rev))
-      (apply #'vc-fossil-command buffer 0 file
-             "cat"
-             (vc-switches 'Fossil 'checkout))
-    (apply #'vc-fossil-command buffer 0 file
-           "cat" "-r" rev
-           (vc-switches 'Fossil 'checkout))))
+  (apply #'vc-fossil-command buffer 0 file
+         "cat"
+         (nconc
+          (unless (zerop (length rev)) (list "-r" rev))
+          (vc-switches 'Fossil 'checkout))))
 
 (defun vc-fossil-checkout (file &optional editable rev)
   (apply #'vc-fossil-command nil 0 file
          "update"
-         (append (cond
-                  ((eq rev t) nil)
-                  (rev (list rev))
-                  (t nil))
-                 (vc-switches 'Fossil 'checkout))))
+         (nconc
+          (cond
+           ((eq rev t) (list "current"))
+           ((equal rev "") (list "trunk"))
+           ((stringp rev) (list rev)))
+          (vc-switches 'Fossil 'checkout))))
 
 (defun vc-fossil-revert (file &optional contents-done)
   "Revert FILE to the version stored in the fossil repository."
@@ -240,6 +243,8 @@ If `files` is nil return the status for all files."
 ;; FIXME, we actually already have short, start and limit, need to
 ;; add it into the code
 
+(autoload 'vc-setup-buffer "vc-dispatcher")
+
 (defun vc-fossil-print-log (files buffer &optional shortlog start-revision limit)
   "Print full log for a file"
   (vc-setup-buffer buffer)
@@ -250,7 +255,12 @@ If `files` is nil return the status for all files."
                (nconc
                 (when start-revision (list "before" start-revision))
                 (when limit (list "-n" (number-to-string limit)))
-                (list "-p" (expand-file-name file))))))))
+                (list "-p" (file-relative-name (expand-file-name file)))))))))
+
+(defvar log-view-message-re)
+(defvar log-view-file-re)
+(defvar log-view-font-lock-keywords)
+(defvar log-view-per-file-logs)
 
 (define-derived-mode vc-fossil-log-view-mode log-view-mode "Fossil-Log-View"
   (require 'add-log) ;; we need the add-log faces
@@ -290,6 +300,8 @@ If `files` is nil return the status for all files."
              (rev2 (list "--from" (or rev1 "current") "--to" rev2))
              (rev1 (list "--from" rev1)))
             (vc-switches 'Fossil 'diff)))))
+
+(declare-function vc-annotate-convert-time "vc-annotate" (time))
 
 (defun vc-fossil-annotate-command (file buffer &optional rev)
   "Execute \"fossil annotate\" on FILE, inserting the contents in BUFFER.
@@ -337,41 +349,37 @@ If REV is specified, annotate that revision."
 
 (defun vc-fossil-previous-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
-  (if file
-      (with-temp-buffer
-        (let ((found (not rev))
-              (newver nil))
-          (insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
-          ;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
-          (goto-char (point-min))
-          (while (not (eobp))
-            (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
-                   (version (car (split-string line))))
-              (setq newver (or newver (and found version)))
-              (setq found  (string= version rev)))
-            (forward-line))
-          newver))
-    (let ((info (vc-fossil--run "info" rev)))
-      (and (string-match "parent: *\\([0-9a-fA-F]+\\)" info)
-           (match-string 1 info)))))
+  (with-temp-buffer
+    (cond
+     (file
+      (vc-fossil-command t 0 (file-truename file) "finfo" "-l" "-b")
+      (goto-char (point-min))
+      (and (re-search-forward (concat "^" (regexp-quote rev)) nil t)
+           (zerop (forward-line))
+           (looking-at "^\\([0-9a-zA-Z]+\\)")
+           (match-string 1)))
+     (t
+      (vc-fossil-command t 0 nil "info" rev)
+      (goto-char (point-min))
+      (and (re-search-forward "parent: *\\([0-9a-fA-F]+\\)" nil t)
+           (match-string 1))))))
 
 (defun vc-fossil-next-revision (file rev)
   "Fossil specific version of the `vc-previous-revision'."
-  (when file
-    (with-temp-buffer
-      (let ((found (not rev))
-            (oldver nil))
-        (insert (vc-fossil--run "finfo" "-l" "-b" (file-truename file)))
-        ;; (vc-fossil--call "fossil" "finfo" "-l" "-b" file)
-        (goto-char (point-min))
-        (while (not (eobp))
-          (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
-                 (version (car (split-string line))))
-            (setq found  (string= version rev))
-            (setq oldver (or oldver found version)))
-          (forward-line))
-        oldver))))
-
+  (with-temp-buffer
+    (cond
+     (file
+      (vc-fossil-command t 0 (file-truename file) "finfo" "-l" "-b")
+      (goto-char (point-min))
+      (and (re-search-forward (concat "^" (regexp-quote rev)) nil t)
+           (zerop (forward-line -1))
+           (looking-at "^\\([0-9a-zA-Z]+\\)")
+           (match-string 1)))
+     (t
+      (vc-fossil-command t 0 nil "info" rev)
+      (goto-char (point-min))
+      (and (re-search-forward "child: *\\([0-9a-fA-F]+\\)" nil t)
+           (match-string 1))))))
 
 (defun vc-fossil-delete-file (file)
   (vc-fossil-command nil 0 (file-truename file) "rm" "--hard"))
