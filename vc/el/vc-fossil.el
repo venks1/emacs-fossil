@@ -211,10 +211,16 @@ If `files` is nil return the status for all files."
 (defun vc-fossil-unregister (file)
   (vc-fossil-command nil 0 file "rm"))
 
+(declare-function log-edit-extract-headers "log-edit" (headers string))
 
 (defun vc-fossil-checkin (files rev comment)
-  (apply 'vc-fossil-command nil 0 files "commit" "-m" comment
-         (vc-switches 'Fossil 'checkin)))
+  (apply 'vc-fossil-command nil 0 files
+         (nconc (list "commit" "-m")
+                (log-edit-extract-headers
+                 `(("Author" . "--user-override")
+                   ("Date" . "--date-override"))
+                 comment)
+                (vc-switches 'Fossil 'checkin))))
 
 (defun vc-fossil-find-revision (file rev buffer)
   (apply #'vc-fossil-command buffer 0 file
