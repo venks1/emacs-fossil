@@ -29,6 +29,7 @@
 ;; * find-version (file rev buffer)
 ;; * checkout (file &optional editable rev)
 ;; * revert (file &optional contents-done)
+;; * pull (prompt)
 ;; - responsible-p (file)
 ;; HISTORY FUNCTIONS
 ;; * print-log (file &optional buffer)
@@ -60,6 +61,8 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 
 
 ;;; BACKEND PROPERTIES
+
+(defvar vc-fossil-history nil)
 
 (defun vc-fossil-revision-granularity () 'repository)
 
@@ -243,6 +246,31 @@ If `files` is nil return the status for all files."
   "Revert FILE to the version stored in the fossil repository."
   (if contents-done t
     (vc-fossil-command nil 0 file "revert")))
+
+(defun vc-fossil-pull (prompt)
+  "Pull upstream changes into the current branch.
+
+With a prefix argument or of PROMPT is non-nil, prompt for a specific
+Fossil pull command.  The default is \"fossil update\"."
+  (interactive "P")
+  (let* ((root (vc-fossil-root default-directory))
+         (buffer (format "*vc-fossil : %s*" (expand-file-name root)))
+         (fossil-program "fossil")
+         (command "update")
+         (args '()))
+    (when prompt
+      (setq args (split-string
+                  (read-shell-command "Run Fossil (like this): "
+                                      "fossil update"
+                                      'vc-fossil-history)
+                  " " t))
+      (setq fossil-program (car args)
+            command (cadr args)
+            args (cddr args)))
+    (apply 'vc-do-async-command buffer root fossil-program command args)
+    (with-current-buffer buffer
+      (vc-run-delayed (vc-compilation-mode 'Fossil)))
+    (vc-set-async-update buffer)))
 
 ;; HISTORY FUNCTIONS
 
