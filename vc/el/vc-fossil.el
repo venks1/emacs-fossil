@@ -1,5 +1,19 @@
 ;;; vc-fossil.el --- VC backend for the fossil sofware configuraiton management system
+
 ;; Author: Venkat Iyer <venkat@comit.com>
+
+;; vc-fossil.el free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; vc-fossil.el is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; For a copy of the license, please see <http://www.gnu.org/licenses/>.
+
 
 ;;; Commentary:
 
