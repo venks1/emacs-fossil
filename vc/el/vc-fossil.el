@@ -139,13 +139,21 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
         ((string= code "REMOVE")    'removed)
         ((string= code "UPDATE")    'needs-update)
         ((string= code "MERGE")     'needs-merge)
+        ((string= code "EXTRA")     'unregistered)
+        ((string= code "MISSING")   'missing)
+        ((string= code "RENAMED")   'added)
         (t           nil)))
 
 (defun vc-fossil-state  (file)
   "Fossil specific version of `vc-state'."
-  (let ((line (vc-fossil--run "update" "-n" "-v" "current" (file-truename file))))
-    (and line
-         (vc-fossil-state-code (car (split-string line))))))
+  (let* ((line (vc-fossil--run "update" "-n" "-v" "current" (file-truename file)))
+         (state (vc-fossil-state-code (car (split-string line)))))
+    ;; if 'fossil update' says file is UNCHANGED check to see if it has been RENAMED
+    (when (or (not state) (eql state 'up-to-date))
+      (let ((line (vc-fossil--run "changes" "--classify" "--unchanged" "--renamed"
+                                  (file-truename file))))
+        (setq state (and line (vc-fossil-state-code (car (split-string line)))))))
+    state))
 
 (defun vc-fossil-working-revision (file)
   "Fossil Specific version of `vc-working-revision'."
@@ -177,10 +185,16 @@ If `files` is nil return the status for all files."
              (status-word (car (split-string line))))
         (if (string-match "-----" status-word)
             (goto-char (point-max))
-          (let ((file (substring line (+ (length status-word) 1))))
+          (let ((file (substring line (+ (length status-word) 1)))
+                (state (vc-fossil-state-code status-word)))
             (setq file (expand-file-name file root))
             (setq file (file-relative-name file dir))
-            (push (list file (vc-fossil-state-code status-word)) result)))
+            ;; if 'fossil update' says file is UNCHANGED check to see if it has been RENAMED
+            (when (or (not state) (eql state 'up-to-date))
+              (let ((line (vc-fossil--run "changes" "--classify" "--unchanged" "--renamed"
+                                          (file-truename file))))
+                (setq state (and line (vc-fossil-state-code (car (split-string line)))))))
+            (push (list file state) result)))
         (forward-line)))
     ;; now collect untracked files
     (delete-region (point-min) (point-max))
