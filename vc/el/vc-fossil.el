@@ -34,12 +34,13 @@
 ;; STATE-QUERYING FUNCTIONS
 ;; * registered (file)
 ;; * state (file) - 'up-to-date 'edited 'needs-patch 'needs-merge
+;; * dir-status-files (dir files uf)
 ;; * workfile-version (file)
 ;; * checkout-model (file)
 ;; - workfile-unchanged-p (file)
 ;; STATE-CHANGING FUNCTIONS
 ;; * register (file &optional rev comment)
-;; * checkin (file rev comment)
+;; * checkin (file comment &optional rev)
 ;; * find-version (file rev buffer)
 ;; * checkout (file &optional editable rev)
 ;; * revert (file &optional contents-done)
@@ -47,7 +48,7 @@
 ;; - responsible-p (file)
 ;; HISTORY FUNCTIONS
 ;; * print-log (file &optional buffer)
-;; * diff (file &optional rev1 rev2 buffer)
+;; * diff (file &optional rev1 rev2 buffer async)
 ;; MISCELLANEOUS
 ;; - delete-file (file)
 ;; - rename-file (old new)
@@ -138,13 +139,21 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
         ((string= code "REMOVE")    'removed)
         ((string= code "UPDATE")    'needs-update)
         ((string= code "MERGE")     'needs-merge)
+        ((string= code "EXTRA")     'unregistered)
+        ((string= code "MISSING")   'missing)
+        ((string= code "RENAMED")   'added)
         (t           nil)))
 
 (defun vc-fossil-state  (file)
   "Fossil specific version of `vc-state'."
-  (let ((line (vc-fossil--run "update" "-n" "-v" "current" (file-truename file))))
-    (and line
-         (vc-fossil-state-code (car (split-string line))))))
+  (let* ((line (vc-fossil--run "update" "-n" "-v" "current" (file-truename file)))
+         (state (vc-fossil-state-code (car (split-string line)))))
+    ;; if 'fossil update' says file is UNCHANGED check to see if it has been RENAMED
+    (when (or (not state) (eql state 'up-to-date))
+      (let ((line (vc-fossil--run "changes" "--classify" "--unchanged" "--renamed"
+                                  (file-truename file))))
+        (setq state (and line (vc-fossil-state-code (car (split-string line)))))))
+    state))
 
 (defun vc-fossil-working-revision (file)
   "Fossil Specific version of `vc-working-revision'."
@@ -161,9 +170,9 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 
 (defun vc-fossil-dir-status (dir update-function)
   "Get fossil status for all files in a directory"
-  (vc-fossil-dir-status-files dir nil nil update-function))
+  (vc-fossil-dir-status-files-i dir nil update-function))
 
-(defun vc-fossil-dir-status-files (dir files default-state update-function)
+(defun vc-fossil-dir-status-files-i (dir files update-function)
   "Get fossil status for all specified files in a directory.
 If `files` is nil return the status for all files."
   (insert (apply 'vc-fossil--run "update" "-n" "-v" "current"
@@ -176,10 +185,16 @@ If `files` is nil return the status for all files."
              (status-word (car (split-string line))))
         (if (string-match "-----" status-word)
             (goto-char (point-max))
-          (let ((file (substring line (+ (length status-word) 1))))
+          (let ((file (substring line (+ (length status-word) 1)))
+                (state (vc-fossil-state-code status-word)))
             (setq file (expand-file-name file root))
             (setq file (file-relative-name file dir))
-            (push (list file (vc-fossil-state-code status-word)) result)))
+            ;; if 'fossil update' says file is UNCHANGED check to see if it has been RENAMED
+            (when (or (not state) (eql state 'up-to-date))
+              (let ((line (vc-fossil--run "changes" "--classify" "--unchanged" "--renamed"
+                                          (file-truename file))))
+                (setq state (and line (vc-fossil-state-code (car (split-string line)))))))
+            (push (list file state) result)))
         (forward-line)))
     ;; now collect untracked files
     (delete-region (point-min) (point-max))
@@ -192,6 +207,12 @@ If `files` is nil return the status for all files."
         (push (list file (vc-fossil-state-code nil)) result)
         (forward-line)))
     (funcall update-function result nil)))
+
+(if (>= emacs-major-version 25)
+    (defun vc-fossil-dir-status-files (dir files update-function)
+      (vc-fossil-dir-status-files-i dir files update-function))
+  (defun vc-fossil-dir-status-files (dir files default-state update-function)
+      (vc-fossil-dir-status-files-i dir files update-function)))
 
 (defun vc-fossil-checkout-model (files) 'implicit)
 
@@ -230,7 +251,7 @@ If `files` is nil return the status for all files."
 
 (declare-function log-edit-extract-headers "log-edit" (headers string))
 
-(defun vc-fossil-checkin (files rev comment)
+(defun vc-fossil-checkin-i (files comment &optional rev)
   (apply 'vc-fossil-command nil 0 files
          (nconc (list "commit" "-m")
                 (log-edit-extract-headers
@@ -238,6 +259,12 @@ If `files` is nil return the status for all files."
                    ("Date" . "--date-override"))
                  comment)
                 (vc-switches 'Fossil 'checkin))))
+
+(if (>= emacs-major-version 25)
+    (defun vc-fossil-checkin (files comment &optional rev)
+      (vc-fossil-checkin-i files comment rev))
+  (defun vc-fossil-checkin (files rev comment)
+    (vc-fossil-checkin-i files comment rev)))
 
 (defun vc-fossil-find-revision (file rev buffer)
   (apply #'vc-fossil-command buffer 0 file
@@ -332,7 +359,7 @@ Fossil pull command.  The default is \"fossil update\"."
            (1 'change-log-date))))))
 
 ;; TODO: implement diff for directories
-(defun vc-fossil-diff (files &optional rev1 rev2 buffer)
+(defun vc-fossil-diff (files &optional rev1 rev2 buffer async)
   "Get Differences for a file"
   (let ((buf (or buffer "*vc-diff*"))
         (root (and files (expand-file-name (vc-fossil-root (car files))))))

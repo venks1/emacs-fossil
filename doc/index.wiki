@@ -60,3 +60,19 @@ A few are:
 </table>
 
 </table>
+
+<h4>Credits</h4>
+
+Over the years many folks have helped me (Venkat Iyer,
+venkat@comit.com) with building and improving emacs-fossil.  Notable
+are:
+
+<ul>
+  <li>Barak A. Pearlmutter, barak pearlmutter net :
+    Major cleanup of my initial versions</li>
+  <li>Frank Fisher, frank-fischer shadow-soft  de :
+    colorized logs, annotate, a few fixes for the diff</li>
+  <li>Paul Onions, ponions37 gmail com :
+    emacs 25 support</li>
+</ul>
+    
