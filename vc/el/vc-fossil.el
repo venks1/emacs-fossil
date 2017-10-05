@@ -85,6 +85,9 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 
 (defvar vc-fossil-history nil)
 
+(defvar vc-fossil-pull-history nil)
+(defvar vc-fossil-push-history nil)
+
 (defun vc-fossil-revision-granularity () 'repository)
 
 
@@ -321,22 +324,16 @@ If `files` is nil return the status for all files."
   (if contents-done t
     (vc-fossil-command nil 0 file "revert")))
 
-(defun vc-fossil-pull (prompt)
-  "Pull upstream changes into the current branch.
-
-With a prefix argument or of PROMPT is non-nil, prompt for a specific
-Fossil pull command.  The default is \"fossil update\"."
-  (interactive "P")
+(defun vc-fossil-do-prompted-command (prompt command &optional hist-var)
   (let* ((root (vc-fossil-root default-directory))
          (buffer (format "*vc-fossil : %s*" (expand-file-name root)))
          (fossil-program "fossil")
-         (command "update")
          (args '()))
     (when prompt
       (setq args (split-string
                   (read-shell-command "Run Fossil (like this): "
-                                      "fossil update"
-                                      'vc-fossil-history)
+                                      (concat fossil-program " " command)
+                                      (or hist-var 'vc-fossil-history))
                   " " t))
       (setq fossil-program (car args)
             command (cadr args)
@@ -345,6 +342,22 @@ Fossil pull command.  The default is \"fossil update\"."
     (with-current-buffer buffer
       (vc-run-delayed (vc-compilation-mode 'Fossil)))
     (vc-set-async-update buffer)))
+
+(defun vc-fossil-pull (prompt)
+  "Pull upstream changes into the current branch.
+
+With a prefix argument, or if PROMPT is non-nil, prompt for a specific
+Fossil pull command.  The default is \"fossil update\"."
+  (interactive "P")
+  (vc-fossil-do-prompted-command prompt "update" 'vc-fossil-pull-history))
+
+(defun vc-fossil-push (prompt)
+  "Push changes to upstream repository.
+
+With a prefix argument or if PROMPT is non-nil, prompt for a specific
+Fossil push command.  The default is \"fossil push\"."
+  (interactive "P")
+  (vc-fossil-do-prompted-command prompt "push" 'vc-fossil-push-history))
 
 ;; HISTORY FUNCTIONS
 
