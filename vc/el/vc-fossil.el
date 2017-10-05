@@ -74,6 +74,12 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
                  (repeat :tag "Argument List" :value ("") string))
   :group 'vc-fossil)
 
+(defcustom vc-fossil-extra-header-fields (list :checkout :tags)
+  "A list of keywords denoting extra header fields to show in the vc-dir buffer."
+  :type '(set (const :repository) (const :remote-url) (const :synchro)
+              (const :checkout) (const :comment) (const :tags))
+  :group 'vc-fossil)
+
 
 ;;; BACKEND PROPERTIES
 
@@ -165,8 +171,7 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
   (eq 'up-to-date (vc-fossil-state file)))
 
 ;; TODO: mode-line-string
-;; TODO: dir-printer  / dir-extra-headers
-
+;; TODO: dir-printer
 
 (defun vc-fossil-dir-status (dir update-function)
   "Get fossil status for all files in a directory"
@@ -212,25 +217,53 @@ If `files` is nil return the status for all files."
     (defun vc-fossil-dir-status-files (dir files update-function)
       (vc-fossil-dir-status-files-i dir files update-function))
   (defun vc-fossil-dir-status-files (dir files default-state update-function)
-      (vc-fossil-dir-status-files-i dir files update-function)))
-
-(defun vc-fossil-checkout-model (files) 'implicit)
+    (vc-fossil-dir-status-files-i dir files update-function)))
 
 (defun vc-fossil-dir-extra-headers (dir)
-  (let* ((info (vc-fossil--run "info"))
-         (posco (string-match "checkout: *\\([0-9a-fA-F]+\\) \\([-0-9: ]+ UTC\\)" info))
-         (coid (substring (match-string 1 info) 0 9))
-         (cots (format-time-string "%Y-%m-%d %H:%M:%S %Z"
-                                   (safe-date-to-time (match-string 2 info))))
-         (postag (string-match "tags: *\\(.*\\)" info))
-         (tags (match-string 1 info))
-         )
-    (concat
-     (propertize "Checkout   : " 'face 'font-lock-type-face)
-     (propertize (concat coid " " cots) 'face 'font-lock-variable-name-face)
-     "\n"
-     (propertize "Tags       : " 'face 'font-lock-type-face)
-     (propertize tags 'face 'font-lock-variable-name-face))))
+  (let ((info (vc-fossil--run "info"))
+        (settings (vc-fossil--run "settings"))
+        (lines nil))
+    (dolist (field vc-fossil-extra-header-fields)
+      (unless (null lines)
+        (push "\n" lines))
+      (cond ((eql field :repository)
+             (string-match "repository: *\\(.*\\)$" info)
+             (let ((repo (match-string 1 info)))
+               (push (propertize "Repository : " 'face 'font-lock-type-face) lines)
+               (push (propertize repo 'face 'font-lock-variable-name-face) lines)))
+            ((eql field :remote-url)
+             (let ((remote-url (car (split-string (vc-fossil--run "remote-url")))))
+               (push (propertize "Remote URL : " 'face 'font-lock-type-face) lines)
+               (push (propertize remote-url 'face 'font-lock-variable-name-face) lines)))
+            ((eql field :synchro)
+             (let* ((as-match (string-match "^autosync.+\\([[:digit:]]\\)$" settings))
+                    (autosync (if as-match (match-string 1 settings) "0"))
+                    (dp-match (string-match "^dont-push.+\\([[:digit:]]\\)$" settings))
+                    (dontpush (if dp-match (match-string 1 settings) "0")))
+               (push (propertize "Synchro    : " 'face 'font-lock-type-face) lines)
+               (push (propertize (concat "autosync=" autosync) 'face 'font-lock-variable-name-face) lines)
+               (push (propertize (concat " dont-push=" dontpush) 'face 'font-lock-variable-name-face) lines)))
+            ((eql field :checkout)
+             (let* ((posco (string-match "checkout: *\\([0-9a-fA-F]+\\) \\([-0-9: ]+ UTC\\)" info))
+                    (coid (substring (match-string 1 info) 0 10))
+                    (cots (format-time-string "%Y-%m-%d %H:%M:%S %Z"
+                                              (safe-date-to-time (match-string 2 info))))
+                    (child-match (string-match "child: *\\(.*\\)$" info))
+                    (leaf (if child-match "NON-LEAF" "leaf")))
+               (push (propertize "Checkout   : " 'face 'font-lock-type-face) lines)
+               (push (propertize (concat coid " " cots) 'face 'font-lock-variable-name-face) lines)
+               (push (propertize (concat " (" leaf ")") 'face 'font-lock-variable-name-face) lines)))
+            ((eql field :comment)
+             (string-match "comment: *\\(.*\\)$" info)
+             (let ((msg (match-string 1 info)))
+               (push (propertize "Comment    : " 'face 'font-lock-type-face) lines)
+               (push (propertize msg 'face 'font-lock-variable-name-face) lines)))
+            ((eql field :tags)
+             (string-match "tags: *\\(.*\\)" info)
+             (let ((tags (match-string 1 info)))
+               (push (propertize "Tags       : " 'face 'font-lock-type-face) lines)
+               (push (propertize tags 'face 'font-lock-variable-name-face) lines)))))
+    (apply #'concat (nreverse lines))))
 
 ;;; STATE-CHANGING FUNCTIONS
 
