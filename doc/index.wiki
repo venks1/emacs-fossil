@@ -1,10 +1,9 @@
 <title>Emacs Integration for Fossil</title>
 
-This mini-project is for integrating emacs into fossil.  This needs a
-few changes into fossil and needs a new file to be loaded into emacs.
+This project is for integrating fossil (http://fossil-scm.org/) into
+emacs (https://www.gnu.org/software/emacs/) vc-mode.
 
-You need emacs version 23.1 or better.  This definitely does not work
-with versions 22.*.
+You need emacs version 24.1 or better.  23.* is not supported anymore.
 
 <h4>How Do I load Fossil support into emacs?</h4>
 
@@ -30,21 +29,6 @@ To compile the file (with warnings) do the following
 emacs -batch -q -no-site-file -eval '(byte-compile-file "vc-fossil.el")'
 </pre>
 then you can load vc-fossil.elc, which should be nominally faster.
-
-<h4>What changes to fossil are required</h4>
-
-As of this fossil version:
-
-<pre>
-7d2d1d3228232b1a1434e425f11008c043171263 2010-11-09 17:51:35 UTC
-</pre>
-
-Fossil trunk (and therefore binaries after that date) support
-this package directly.
-
-Future changes, if required, will be in the venks-emacs branch on the
-fossil repository.
-
 
 <h4>What emacs keys do I need?</h4>
 
@@ -76,3 +60,9 @@ are:
     emacs 25 support</li>
 </ul>
     
+<h4>Mirrors</h4>
+
+This project is also mirrored into github at
+https://github.com/venks1/emacs-fossil , primarily for MELPA.
+
+
