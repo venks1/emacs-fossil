@@ -222,6 +222,8 @@ If `files` is nil return the status for all files."
   (defun vc-fossil-dir-status-files (dir files default-state update-function)
     (vc-fossil-dir-status-files-i dir files update-function)))
 
+(defun vc-fossil-checkout-model (files) 'implicit)
+
 (defun vc-fossil-dir-extra-headers (dir)
   (let ((info (vc-fossil--run "info"))
         (settings (vc-fossil--run "settings"))
