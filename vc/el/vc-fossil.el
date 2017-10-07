@@ -209,7 +209,7 @@ Allow user to edit command in minibuffer if PROMPT is non-nil."
 
 (defun vc-fossil-dir-status (dir update-function)
   "Get fossil status for all files in a directory"
-  (vc-fossil-dir-status-files-i dir nil update-function))
+  (vc-fossil--dir-status-files dir nil update-function))
 
 (defun vc-fossil--dir-status-files (dir files update-function)
   "Get fossil status for all specified files in a directory.
