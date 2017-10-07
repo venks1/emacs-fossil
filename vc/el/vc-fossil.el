@@ -112,7 +112,9 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 (defun vc-fossil--command (buffer okstatus file-or-list &rest flags)
   "A wrapper around `vc-do-command' for use in vc-fossil.el.
   The difference to vc-do-command is that this function always invokes `fossil'."
-  (apply #'vc-do-command (or buffer "*vc*") okstatus "fossil" file-or-list flags))
+  (apply #'vc-do-command (or buffer "*vc*") okstatus "fossil" file-or-list flags)
+  (when (eql major-mode 'vc-dir-mode)  ; update header info
+    (revert-buffer (current-buffer))))
 
 (defun vc-fossil--get-id (dir)
   (let* ((default-directory dir)
