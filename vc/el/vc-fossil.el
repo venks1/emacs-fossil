@@ -224,6 +224,10 @@ If `files` is nil return the status for all files."
 
 (defun vc-fossil-checkout-model (files) 'implicit)
 
+(defun vc-fossil-propertize-header-line (name value)
+  (concat (propertize name  'face 'font-lock-type-face)
+          (propertize value 'face 'font-lock-variable-name-face)))
+
 (defun vc-fossil-dir-extra-headers (dir)
   (let ((info (vc-fossil--run "info"))
         (settings (vc-fossil--run "settings"))
@@ -234,20 +238,19 @@ If `files` is nil return the status for all files."
       (cond ((eql field :repository)
              (string-match "repository: *\\(.*\\)$" info)
              (let ((repo (match-string 1 info)))
-               (push (propertize "Repository : " 'face 'font-lock-type-face) lines)
-               (push (propertize repo 'face 'font-lock-variable-name-face) lines)))
+               (push (vc-fossil-propertize-header-line "Repository : " repo) lines)))
             ((eql field :remote-url)
              (let ((remote-url (car (split-string (vc-fossil--run "remote-url")))))
-               (push (propertize "Remote URL : " 'face 'font-lock-type-face) lines)
-               (push (propertize remote-url 'face 'font-lock-variable-name-face) lines)))
+               (push (vc-fossil-propertize-header-line "Remote URL : " remote-url) lines)))
             ((eql field :synchro)
              (let* ((as-match (string-match "^autosync.+\\([[:digit:]]\\)$" settings))
                     (autosync (if as-match (match-string 1 settings) "0"))
                     (dp-match (string-match "^dont-push.+\\([[:digit:]]\\)$" settings))
                     (dontpush (if dp-match (match-string 1 settings) "0")))
-               (push (propertize "Synchro    : " 'face 'font-lock-type-face) lines)
-               (push (propertize (concat "autosync=" autosync) 'face 'font-lock-variable-name-face) lines)
-               (push (propertize (concat " dont-push=" dontpush) 'face 'font-lock-variable-name-face) lines)))
+               (push (vc-fossil-propertize-header-line "Synchro    : "
+                                                       (concat "autosync=" autosync
+                                                               " dont-push=" dontpush))
+                     lines)))
             ((eql field :checkout)
              (let* ((posco (string-match "checkout: *\\([0-9a-fA-F]+\\) \\([-0-9: ]+ UTC\\)" info))
                     (coid (substring (match-string 1 info) 0 10))
@@ -255,19 +258,18 @@ If `files` is nil return the status for all files."
                                               (safe-date-to-time (match-string 2 info))))
                     (child-match (string-match "child: *\\(.*\\)$" info))
                     (leaf (if child-match "NON-LEAF" "leaf")))
-               (push (propertize "Checkout   : " 'face 'font-lock-type-face) lines)
-               (push (propertize (concat coid " " cots) 'face 'font-lock-variable-name-face) lines)
-               (push (propertize (concat " (" leaf ")") 'face 'font-lock-variable-name-face) lines)))
+               (push (vc-fossil-propertize-header-line "Checkout   : "
+                                                       (concat coid " " cots
+                                                               (concat " (" leaf ")")))
+                     lines)))
             ((eql field :comment)
              (string-match "comment: *\\(.*\\)$" info)
              (let ((msg (match-string 1 info)))
-               (push (propertize "Comment    : " 'face 'font-lock-type-face) lines)
-               (push (propertize msg 'face 'font-lock-variable-name-face) lines)))
+               (push (vc-fossil-propertize-header-line "Comment    : " msg) lines)))
             ((eql field :tags)
              (string-match "tags: *\\(.*\\)" info)
              (let ((tags (match-string 1 info)))
-               (push (propertize "Tags       : " 'face 'font-lock-type-face) lines)
-               (push (propertize tags 'face 'font-lock-variable-name-face) lines)))))
+               (push (vc-fossil-propertize-header-line "Tags       : " tags) lines)))))
     (apply #'concat (nreverse lines))))
 
 ;;; STATE-CHANGING FUNCTIONS
