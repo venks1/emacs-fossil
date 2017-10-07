@@ -38,6 +38,7 @@
 ;; * workfile-version (file)
 ;; * checkout-model (file)
 ;; - workfile-unchanged-p (file)
+;; - root (file)
 ;; STATE-CHANGING FUNCTIONS
 ;; * register (file &optional rev comment)
 ;; * checkin (file comment &optional rev)
@@ -45,6 +46,7 @@
 ;; * checkout (file &optional editable rev)
 ;; * revert (file &optional contents-done)
 ;; * pull (prompt)
+;; - push (prompt)
 ;; - responsible-p (file)
 ;; HISTORY FUNCTIONS
 ;; * print-log (file &optional buffer)
@@ -107,22 +109,45 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
         (unless (apply #'vc-fossil--out-ok args)
           (throw 'bail nil))))))
 
-(defun vc-fossil-root (file)
-  (or (vc-find-root file ".fslckout")
-      (vc-find-root file "_FOSSIL_")))
-
-(defun vc-fossil-command (buffer okstatus file-or-list &rest flags)
+(defun vc-fossil--command (buffer okstatus file-or-list &rest flags)
   "A wrapper around `vc-do-command' for use in vc-fossil.el.
   The difference to vc-do-command is that this function always invokes `fossil'."
   (apply #'vc-do-command (or buffer "*vc*") okstatus "fossil" file-or-list flags))
 
-(defun vc-fossil-get-id (dir)
+(defun vc-fossil--get-id (dir)
   (let* ((default-directory dir)
          (info (vc-fossil--run "info"))
          (pos (string-match "checkout: *\\([0-9a-fA-F]+\\)" info))
          (uid (match-string 1 info))
          )
-    (substring uid 0 9)))
+    (substring uid 0 10)))
+
+(defun vc-fossil--get-repository (dir)
+  (let* ((default-directory dir)
+         (info (vc-fossil--run "info")))
+    (string-match "repository: *\\(.*\\)$" info)
+    (match-string 1 info)))
+
+(defun vc-fossil--do-async-prompted-command (command &optional prompt hist-var)
+  "Run a fossil command asynchronously.
+Allow user to edit command in minibuffer if PROMPT is non-nil."
+  (let* ((root (vc-fossil-root default-directory))
+         (buffer (format "*vc-fossil : %s*" (expand-file-name root)))
+         (fossil-program "fossil")
+         (args '()))
+    (when prompt
+      (setq args (split-string
+                  (read-shell-command "Run Fossil (like this): "
+                                      (concat fossil-program " " command)
+                                      (or hist-var 'vc-fossil-history))
+                  " " t))
+      (setq fossil-program (car args)
+            command (cadr args)
+            args (cddr args)))
+    (apply 'vc-do-async-command buffer root fossil-program command args)
+    (with-current-buffer buffer
+      (vc-run-delayed (vc-compilation-mode 'Fossil)))
+    (vc-set-async-update buffer)))
 
 ;;; STATE-QUERYING FUNCTIONS
 
@@ -173,6 +198,10 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 (defun vc-fossil-workfile-unchanged-p (file)
   (eq 'up-to-date (vc-fossil-state file)))
 
+(defun vc-fossil-root (file)
+  (or (vc-find-root file ".fslckout")
+      (vc-find-root file "_FOSSIL_")))
+
 ;; TODO: mode-line-string
 ;; TODO: dir-printer
 
@@ -180,7 +209,7 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
   "Get fossil status for all files in a directory"
   (vc-fossil-dir-status-files-i dir nil update-function))
 
-(defun vc-fossil-dir-status-files-i (dir files update-function)
+(defun vc-fossil--dir-status-files (dir files update-function)
   "Get fossil status for all specified files in a directory.
 If `files` is nil return the status for all files."
   (insert (apply 'vc-fossil--run "update" "-n" "-v" "current"
@@ -218,13 +247,13 @@ If `files` is nil return the status for all files."
 
 (if (>= emacs-major-version 25)
     (defun vc-fossil-dir-status-files (dir files update-function)
-      (vc-fossil-dir-status-files-i dir files update-function))
+      (vc-fossil--dir-status-files dir files update-function))
   (defun vc-fossil-dir-status-files (dir files default-state update-function)
-    (vc-fossil-dir-status-files-i dir files update-function)))
+    (vc-fossil--dir-status-files dir files update-function)))
 
 (defun vc-fossil-checkout-model (files) 'implicit)
 
-(defun vc-fossil-propertize-header-line (name value)
+(defun vc-fossil--propertize-header-line (name value)
   (concat (propertize name  'face 'font-lock-type-face)
           (propertize value 'face 'font-lock-variable-name-face)))
 
@@ -238,18 +267,18 @@ If `files` is nil return the status for all files."
       (cond ((eql field :repository)
              (string-match "repository: *\\(.*\\)$" info)
              (let ((repo (match-string 1 info)))
-               (push (vc-fossil-propertize-header-line "Repository : " repo) lines)))
+               (push (vc-fossil--propertize-header-line "Repository : " repo) lines)))
             ((eql field :remote-url)
              (let ((remote-url (car (split-string (vc-fossil--run "remote-url")))))
-               (push (vc-fossil-propertize-header-line "Remote URL : " remote-url) lines)))
+               (push (vc-fossil--propertize-header-line "Remote URL : " remote-url) lines)))
             ((eql field :synchro)
              (let* ((as-match (string-match "^autosync.+\\([[:digit:]]\\)$" settings))
                     (autosync (if as-match (match-string 1 settings) "0"))
                     (dp-match (string-match "^dont-push.+\\([[:digit:]]\\)$" settings))
                     (dontpush (if dp-match (match-string 1 settings) "0")))
-               (push (vc-fossil-propertize-header-line "Synchro    : "
-                                                       (concat "autosync=" autosync
-                                                               " dont-push=" dontpush))
+               (push (vc-fossil--propertize-header-line "Synchro    : "
+                                                        (concat "autosync=" autosync
+                                                                " dont-push=" dontpush))
                      lines)))
             ((eql field :checkout)
              (let* ((posco (string-match "checkout: *\\([0-9a-fA-F]+\\) \\([-0-9: ]+ UTC\\)" info))
@@ -258,41 +287,41 @@ If `files` is nil return the status for all files."
                                               (safe-date-to-time (match-string 2 info))))
                     (child-match (string-match "child: *\\(.*\\)$" info))
                     (leaf (if child-match "NON-LEAF" "leaf")))
-               (push (vc-fossil-propertize-header-line "Checkout   : "
-                                                       (concat coid " " cots
-                                                               (concat " (" leaf ")")))
+               (push (vc-fossil--propertize-header-line "Checkout   : "
+                                                        (concat coid " " cots
+                                                                (concat " (" leaf ")")))
                      lines)))
             ((eql field :comment)
              (string-match "comment: *\\(.*\\)$" info)
              (let ((msg (match-string 1 info)))
-               (push (vc-fossil-propertize-header-line "Comment    : " msg) lines)))
+               (push (vc-fossil--propertize-header-line "Comment    : " msg) lines)))
             ((eql field :tags)
              (string-match "tags: *\\(.*\\)" info)
              (let ((tags (match-string 1 info)))
-               (push (vc-fossil-propertize-header-line "Tags       : " tags) lines)))))
+               (push (vc-fossil--propertize-header-line "Tags       : " tags) lines)))))
     (apply #'concat (nreverse lines))))
 
 ;;; STATE-CHANGING FUNCTIONS
 
 (defun vc-fossil-create-repo ()
   "Create a new Fossil Repository."
-  (vc-fossil-command nil 0 nil "new"))
+  (vc-fossil--command nil 0 nil "new"))
 
 ;; We ignore the comment.  There's no comment on add.
 (defun vc-fossil-register (files &optional rev comment)
   "Register FILE into the fossil version-control system."
-  (vc-fossil-command nil 0 files "add"))
+  (vc-fossil--command nil 0 files "add"))
 
 (defun vc-fossil-responsible-p (file)
   (vc-fossil-root file))
 
 (defun vc-fossil-unregister (file)
-  (vc-fossil-command nil 0 file "rm"))
+  (vc-fossil--command nil 0 file "rm"))
 
 (declare-function log-edit-extract-headers "log-edit" (headers string))
 
-(defun vc-fossil-checkin-i (files comment &optional rev)
-  (apply 'vc-fossil-command nil 0 files
+(defun vc-fossil--checkin (files comment &optional rev)
+  (apply 'vc-fossil--command nil 0 files
          (nconc (list "commit" "-m")
                 (log-edit-extract-headers
                  `(("Author" . "--user-override")
@@ -302,19 +331,19 @@ If `files` is nil return the status for all files."
 
 (if (>= emacs-major-version 25)
     (defun vc-fossil-checkin (files comment &optional rev)
-      (vc-fossil-checkin-i files comment rev))
+      (vc-fossil--checkin files comment rev))
   (defun vc-fossil-checkin (files rev comment)
-    (vc-fossil-checkin-i files comment rev)))
+    (vc-fossil--checkin files comment rev)))
 
 (defun vc-fossil-find-revision (file rev buffer)
-  (apply #'vc-fossil-command buffer 0 file
+  (apply #'vc-fossil--command buffer 0 file
          "cat"
          (nconc
           (unless (zerop (length rev)) (list "-r" rev))
           (vc-switches 'Fossil 'checkout))))
 
 (defun vc-fossil-checkout (file &optional editable rev)
-  (apply #'vc-fossil-command nil 0 file
+  (apply #'vc-fossil--command nil 0 file
          "update"
          (nconc
           (cond
@@ -326,26 +355,7 @@ If `files` is nil return the status for all files."
 (defun vc-fossil-revert (file &optional contents-done)
   "Revert FILE to the version stored in the fossil repository."
   (if contents-done t
-    (vc-fossil-command nil 0 file "revert")))
-
-(defun vc-fossil-do-prompted-command (prompt command &optional hist-var)
-  (let* ((root (vc-fossil-root default-directory))
-         (buffer (format "*vc-fossil : %s*" (expand-file-name root)))
-         (fossil-program "fossil")
-         (args '()))
-    (when prompt
-      (setq args (split-string
-                  (read-shell-command "Run Fossil (like this): "
-                                      (concat fossil-program " " command)
-                                      (or hist-var 'vc-fossil-history))
-                  " " t))
-      (setq fossil-program (car args)
-            command (cadr args)
-            args (cddr args)))
-    (apply 'vc-do-async-command buffer root fossil-program command args)
-    (with-current-buffer buffer
-      (vc-run-delayed (vc-compilation-mode 'Fossil)))
-    (vc-set-async-update buffer)))
+    (vc-fossil--command nil 0 file "revert")))
 
 (defun vc-fossil-pull (prompt)
   "Pull upstream changes into the current branch.
@@ -353,7 +363,7 @@ If `files` is nil return the status for all files."
 With a prefix argument, or if PROMPT is non-nil, prompt for a specific
 Fossil pull command.  The default is \"fossil update\"."
   (interactive "P")
-  (vc-fossil-do-prompted-command prompt "update" 'vc-fossil-pull-history))
+  (vc-fossil--do-async-prompted-command "update" prompt 'vc-fossil-pull-history))
 
 (defun vc-fossil-push (prompt)
   "Push changes to upstream repository.
@@ -361,7 +371,7 @@ Fossil pull command.  The default is \"fossil update\"."
 With a prefix argument or if PROMPT is non-nil, prompt for a specific
 Fossil push command.  The default is \"fossil push\"."
   (interactive "P")
-  (vc-fossil-do-prompted-command prompt "push" 'vc-fossil-push-history))
+  (vc-fossil--do-async-prompted-command "push" prompt 'vc-fossil-push-history))
 
 ;; HISTORY FUNCTIONS
 
@@ -376,7 +386,7 @@ Fossil push command.  The default is \"fossil push\"."
   (let ((inhibit-read-only t))
     (with-current-buffer buffer
       (dolist (file files)
-        (apply #'vc-fossil-command buffer 0 nil "timeline"
+        (apply #'vc-fossil--command buffer 0 nil "timeline"
                (nconc
                 (when start-revision (list "before" start-revision))
                 (when limit (list "-n" (number-to-string limit)))
@@ -418,7 +428,7 @@ Fossil push command.  The default is \"fossil push\"."
             (and (null (cdr files))
                  (equal root (expand-file-name (car files)))))
         (setq files nil))
-    (apply #'vc-fossil-command
+    (apply #'vc-fossil--command
            buf 0 files "diff" "-i"
            (nconc
             (cond
@@ -432,7 +442,7 @@ Fossil push command.  The default is \"fossil push\"."
   "Execute \"fossil annotate\" on FILE, inserting the contents in BUFFER.
 If REV is specified, annotate that revision."
   ;;(assert (not rev) nil "Annotating a revision not supported")
-  (vc-fossil-command buffer 0 file "annotate"))
+  (vc-fossil--command buffer 0 file "annotate"))
 
 (defconst vc-fossil-annotate-re
   "\\([[:word:]]+\\)\\s-+\\([-0-9]+\\)\\s-+[0-9]+: ")
@@ -459,16 +469,16 @@ If REV is specified, annotate that revision."
 (defun vc-fossil-create-tag (file name branchp)
   (let* ((dir (if (file-directory-p file) file (file-name-directory file)))
          (default-directory dir))
-    (apply #'vc-fossil-command nil 0 nil `(,@(if branchp
+    (apply #'vc-fossil--command nil 0 nil `(,@(if branchp
                                                  '("branch" "new")
                                                '("tag" "add"))
-                                           ,name ,(vc-fossil-get-id dir)))))
+                                           ,name ,(vc-fossil--get-id dir)))))
 
 ;; FIXME: we should update buffers if update is non-nill
 
 (defun vc-fossil-retrieve-tag (dir name update)
   (let ((default-directory dir))
-    (vc-fossil-command nil 0 nil "checkout" name)))
+    (vc-fossil--command nil 0 nil "checkout" name)))
 
 ;;; MISCELLANEOUS
 
@@ -477,14 +487,14 @@ If REV is specified, annotate that revision."
   (with-temp-buffer
     (cond
      (file
-      (vc-fossil-command t 0 (file-truename file) "finfo" "-l" "-b")
+      (vc-fossil--command t 0 (file-truename file) "finfo" "-l" "-b")
       (goto-char (point-min))
       (and (re-search-forward (concat "^" (regexp-quote rev)) nil t)
            (zerop (forward-line))
            (looking-at "^\\([0-9a-zA-Z]+\\)")
            (match-string 1)))
      (t
-      (vc-fossil-command t 0 nil "info" rev)
+      (vc-fossil--command t 0 nil "info" rev)
       (goto-char (point-min))
       (and (re-search-forward "parent: *\\([0-9a-fA-F]+\\)" nil t)
            (match-string 1))))))
@@ -494,23 +504,23 @@ If REV is specified, annotate that revision."
   (with-temp-buffer
     (cond
      (file
-      (vc-fossil-command t 0 (file-truename file) "finfo" "-l" "-b")
+      (vc-fossil--command t 0 (file-truename file) "finfo" "-l" "-b")
       (goto-char (point-min))
       (and (re-search-forward (concat "^" (regexp-quote rev)) nil t)
            (zerop (forward-line -1))
            (looking-at "^\\([0-9a-zA-Z]+\\)")
            (match-string 1)))
      (t
-      (vc-fossil-command t 0 nil "info" rev)
+      (vc-fossil--command t 0 nil "info" rev)
       (goto-char (point-min))
       (and (re-search-forward "child: *\\([0-9a-fA-F]+\\)" nil t)
            (match-string 1))))))
 
 (defun vc-fossil-delete-file (file)
-  (vc-fossil-command nil 0 (file-truename file) "rm" "--hard"))
+  (vc-fossil--command nil 0 (file-truename file) "rm" "--hard"))
 
 (defun vc-fossil-rename-file (old new)
-  (vc-fossil-command nil 0 (list (file-truename old) (file-truename new)) "mv" "--hard"))
+  (vc-fossil--command nil 0 (list (file-truename old) (file-truename new)) "mv" "--hard"))
 
 (provide 'vc-fossil)
 
