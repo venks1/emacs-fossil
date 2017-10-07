@@ -274,13 +274,13 @@ If `files` is nil return the status for all files."
              (let ((remote-url (car (split-string (vc-fossil--run "remote-url")))))
                (push (vc-fossil--propertize-header-line "Remote URL : " remote-url) lines)))
             ((eql field :synchro)
-             (let* ((as-match (string-match "^autosync.+\\([[:digit:]]\\)$" settings))
-                    (autosync (if as-match (match-string 1 settings) "0"))
-                    (dp-match (string-match "^dont-push.+\\([[:digit:]]\\)$" settings))
-                    (dontpush (if dp-match (match-string 1 settings) "0")))
+             (let* ((as-match (string-match "^autosync +.+ +\\([[:graph:]]+\\)$" settings))
+                    (autosync (and as-match (match-string 1 settings)))
+                    (dp-match (string-match "^dont-push +.+ +\\([[:graph:]]+\\)$" settings))
+                    (dontpush (and dp-match (match-string 1 settings))))
                (push (vc-fossil--propertize-header-line "Synchro    : "
-                                                        (concat "autosync=" autosync
-                                                                " dont-push=" dontpush))
+                                                        (concat (and autosync "autosync=") autosync
+                                                                (and dontpush " dont-push=") dontpush))
                      lines)))
             ((eql field :checkout)
              (let* ((posco (string-match "checkout: *\\([0-9a-fA-F]+\\) \\([-0-9: ]+ UTC\\)" info))
@@ -288,7 +288,7 @@ If `files` is nil return the status for all files."
                     (cots (format-time-string "%Y-%m-%d %H:%M:%S %Z"
                                               (safe-date-to-time (match-string 2 info))))
                     (child-match (string-match "child: *\\(.*\\)$" info))
-                    (leaf (if child-match "NON-LEAF" "leaf")))
+                    (leaf (if child-match "non-leaf" "leaf")))
                (push (vc-fossil--propertize-header-line "Checkout   : "
                                                         (concat coid " " cots
                                                                 (concat " (" leaf ")")))
