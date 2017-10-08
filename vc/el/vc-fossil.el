@@ -22,6 +22,11 @@
 
 ;;; Installation:
 
+;; 1. Install this vc-fossil package.
+;; 2. Add "Fossil" to the list of VC backends using
+;;    M-x customize-variable vc-handled-backends
+
+;; Alternative manual installation
 ;; 1. Put this file somewhere in the Emacs load-path.
 ;; 2. Tell Emacs to load it when needed:
 ;;    (autoload 'vc-fossil-registered "vc-fossil")
