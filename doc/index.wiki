@@ -9,15 +9,6 @@ You need emacs version 24.1 or better.  23.* is not supported anymore.
 
 Short answer:
 
-Install the vc-fossil package from the MELPA package repository then
-customize the vc-handled-backend variable by adding "Fossil" to its
-list of names.
-
-Alternative, slightly longer, answer:
-
-Instead of installing from MELPA you may clone this source repository
-directly then add it manually to your Emacs setup as follows.
-
 Add this to your .emacs file, or cut and paste this into the *scratch*
 buffer and do
 <code>C-x C-e</code> to execute it.
