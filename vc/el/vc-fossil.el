@@ -22,6 +22,11 @@
 
 ;;; Installation:
 
+;; 1. Install this vc-fossil package.
+;; 2. Add "Fossil" to the list of VC backends using
+;;    M-x customize-variable vc-handled-backends
+
+;; Alternative manual installation
 ;; 1. Put this file somewhere in the Emacs load-path.
 ;; 2. Tell Emacs to load it when needed:
 ;;    (autoload 'vc-fossil-registered "vc-fossil")
@@ -258,6 +263,8 @@ If `files` is nil return the status for all files."
 (defun vc-fossil--propertize-header-line (name value)
   (concat (propertize name  'face 'font-lock-type-face)
           (propertize value 'face 'font-lock-variable-name-face)))
+
+(defun vc-fossil-checkout-model (files) 'implicit)
 
 (defun vc-fossil-dir-extra-headers (dir)
   (let ((info (vc-fossil--run "info"))
