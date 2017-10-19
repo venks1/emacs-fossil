@@ -216,22 +216,9 @@ Allow user to edit command in minibuffer if PROMPT is non-nil."
   "Get fossil status for all files in a directory"
   (vc-fossil--dir-status-files dir nil update-function))
 
-(defvar vc-fossil--file-classifications nil
-  "An alist of (filename . classification) pairs.")
-
-(defun vc-fossil--classify-all-files (dir)
-  (setq vc-fossil--file-classifications nil)
-  (let* ((default-directory dir)
-         (lines (split-string (vc-fossil--run "changes" "--classify" "--all") "[\n\r]+" t)))
-    (dolist (line lines)
-      (string-match "^\\(\\w+\\)\\s-+\\(.+\\)$" line)
-      (let ((pair (cons (match-string 2 line) (match-string 1 line))))
-        (push pair vc-fossil--file-classifications)))))
-
 (defun vc-fossil--dir-status-files (dir files update-function)
   "Get fossil status for all specified files in a directory.
 If `files` is nil return the status for all files."
-  (vc-fossil--classify-all-files dir)
   (insert (apply 'vc-fossil--run "update" "-n" "-v" "current"
                  (or files (list dir))))
   (let ((result '())
@@ -248,7 +235,9 @@ If `files` is nil return the status for all files."
             (setq file (file-relative-name file dir))
             ;; if 'fossil update' says file is UNCHANGED check to see if it has been RENAMED
             (when (or (not state) (eql state 'up-to-date))
-              (setq state (vc-fossil-state-code (cdr (assoc file vc-fossil--file-classifications)))))
+              (let ((line (vc-fossil--run "changes" "--classify" "--unchanged" "--renamed"
+                                          (file-truename file))))
+                (setq state (and line (vc-fossil-state-code (car (split-string line)))))))
             (push (list file state) result)))
         (forward-line)))
     ;; now collect untracked files
@@ -274,6 +263,8 @@ If `files` is nil return the status for all files."
 (defun vc-fossil--propertize-header-line (name value)
   (concat (propertize name  'face 'font-lock-type-face)
           (propertize value 'face 'font-lock-variable-name-face)))
+
+(defun vc-fossil-checkout-model (files) 'implicit)
 
 (defun vc-fossil-dir-extra-headers (dir)
   (let ((info (vc-fossil--run "info"))
