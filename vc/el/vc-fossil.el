@@ -540,6 +540,14 @@ If REV is specified, annotate that revision."
 (defun vc-fossil-rename-file (old new)
   (vc-fossil--command nil 0 (list (file-truename old) (file-truename new)) "mv" "--hard"))
 
+;;; This snippet enables the Fossil VC backend so it will work once
+;;; this file is loaded.  By also marking it for inclusion in the
+;;; autoloads file, installing packaged versions of this should work
+;;; without users having to monkey with their init files.
+
+;;;###autoload
+(add-to-list 'vc-handled-backends 'Fossil t)
+
 (provide 'vc-fossil)
 
 ;;; vc-fossil.el ends here
