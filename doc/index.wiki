@@ -23,13 +23,13 @@ buffer and do
 <code>C-x C-e</code> to execute it.
 
 <pre>
-(add-to-list 'vc-handled-backends 'Fossil)
+(add-to-list 'vc-handled-backends 'Fossil t)
 (load-file "/path/to/this/project/vc/el/vc-fossil.el")
 </pre>
 or if you would rather load the file lazily, compile the file (see
 below) and use this instead.
 <pre>
-(add-to-list 'vc-handled-backends 'Fossil)
+(add-to-list 'vc-handled-backends 'Fossil t)
 (autoload 'vc-fossil-registered "/path/to/this/project/vc/el/vc-fossil.elc")
 </pre>
 
