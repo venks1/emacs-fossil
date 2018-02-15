@@ -1,5 +1,5 @@
-emacs-fossil (2018.02.14-1) unstable; urgency=medium
+emacs-fossil (2018.02.15-1) unstable; urgency=medium
 
   * Initial release.
 
- -- Barak A. Pearlmutter <bap@debian.org>  Thu, 15 Feb 2018 15:29:39 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 15 Feb 2018 19:43:20 +0000
