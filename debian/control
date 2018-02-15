@@ -7,8 +7,8 @@ Build-Depends: debhelper (>= 11),
  dh-elpa
 Standards-Version: 4.1.3
 Homepage: https://github.com/venks1/emacs-fossil
-Vcs-Browser: https://anonscm.debian.org/cgit/pkg-emacsen/pkg/emacs-fossil-git.git/
-Vcs-Git: https://anonscm.debian.org/git/pkg-emacsen/pkg/emacs-fossil-git.git
+Vcs-Browser: https://anonscm.debian.org/cgit/pkg-emacsen/pkg/emacs-fossil.git/
+Vcs-Git: https://anonscm.debian.org/git/pkg-emacsen/pkg/emacs-fossil.git
 
 Package: elpa-vc-fossil
 Architecture: all
