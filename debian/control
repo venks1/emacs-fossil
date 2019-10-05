@@ -1,7 +1,7 @@
 Source: emacs-fossil
 Section: lisp
 Priority: optional
-Maintainer: Debian Emacs addons team <pkg-emacsen-addons@lists.alioth.debian.org>
+Maintainer: Debian Emacsen Team <debian-emacsen@lists.debian.org>
 Uploaders: Barak A. Pearlmutter <bap@debian.org>
 Build-Depends: debhelper (>= 11),
  dh-elpa
