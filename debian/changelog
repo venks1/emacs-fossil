@@ -1,8 +1,13 @@
 emacs-fossil (2018.02.15-4) UNRELEASED; urgency=medium
 
+  [ David Krauser ]
   * Update maintainer email address
 
- -- David Krauser <david@krauser.org>  Fri, 04 Oct 2019 14:56:43 -0400
+  [ Barak A. Pearlmutter ]
+  * bump standards version
+  * bump to debhelper 12
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 25 Dec 2019 17:17:15 +0000
 
 emacs-fossil (2018.02.15-3) unstable; urgency=medium
 
