@@ -3,7 +3,7 @@ Section: lisp
 Priority: optional
 Maintainer: Debian Emacsen Team <debian-emacsen@lists.debian.org>
 Uploaders: Barak A. Pearlmutter <bap@debian.org>
-Build-Depends: debhelper-compat (= 12),
+Build-Depends: debhelper-compat (= 13),
  dh-elpa
 Standards-Version: 4.4.1
 Homepage: https://github.com/venks1/emacs-fossil
