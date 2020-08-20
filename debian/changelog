@@ -7,6 +7,7 @@ emacs-fossil (2018.02.15-4) UNRELEASED; urgency=medium
   * bump standards version
   * bump to debhelper 12
   * Bump debhelper from old 12 to 13.
+  * Set upstream metadata fields: Bug-Database, Bug-Submit.
 
  -- Barak A. Pearlmutter <bap@debian.org>  Wed, 25 Dec 2019 17:17:15 +0000
 
