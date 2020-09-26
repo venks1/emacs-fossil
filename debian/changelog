@@ -1,4 +1,4 @@
-emacs-fossil (2018.02.15-4) UNRELEASED; urgency=medium
+emacs-fossil (2020.09.20-1) unstable; urgency=medium
 
   [ David Krauser ]
   * Update maintainer email address
@@ -9,8 +9,11 @@ emacs-fossil (2018.02.15-4) UNRELEASED; urgency=medium
   * Bump debhelper from old 12 to 13.
   * Set upstream metadata fields: Bug-Database, Bug-Submit.
   * Update standards version to 4.5.0, no changes needed.
+  * Rules-Require-Root: no
+  * New upstream version
+  * Mail *.el file moved.
 
- -- Barak A. Pearlmutter <bap@debian.org>  Wed, 25 Dec 2019 17:17:15 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>  Sat, 26 Sep 2020 20:33:21 +0100
 
 emacs-fossil (2018.02.15-3) unstable; urgency=medium
 
