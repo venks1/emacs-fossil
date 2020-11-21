@@ -180,7 +180,7 @@
 (defun vc-fossil--classify-all-files (dir)
   (setq vc-fossil--file-classifications nil)
   (let* ((default-directory dir)
-	 (lines (split-string (vc-fossil--run "changes" "--classify" "--all") "[\n\r]+" t)))
+	 (lines (split-string (vc-fossil--run "changes" "--classify" "--all" ".") "[\n\r]+" t)))
     (dolist (line lines)
       (string-match "^\\(\\w+\\)\\s-+\\(.+\\)$" line)
       (let ((pair (cons (match-string 2 line) (match-string 1 line))))
@@ -257,8 +257,6 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 	    (goto-char (point-max))
 	  (let ((file (cadr (split-string line)))
 		(state (vc-fossil--state-code status-word)))
-	    (setq file (expand-file-name file root))
-	    (setq file (file-relative-name file dir))
 	    ;; If 'fossil update' says file is UNCHANGED check to see
 	    ;; if it has been RENAMED.
 	    (when (or (not state) (eql state 'up-to-date))
@@ -272,8 +270,6 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
     (goto-char (point-min))
     (while (not (eobp))
       (let ((file (buffer-substring-no-properties (point) (line-end-position))))
-	(setq file (expand-file-name file dir))
-	(setq file (file-relative-name file dir))
 	(push (list file (vc-fossil--state-code nil)) result)
 	(forward-line)))
     (funcall update-function result nil)))
