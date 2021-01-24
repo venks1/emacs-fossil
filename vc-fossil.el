@@ -39,7 +39,7 @@
 ;; * checkout-model (files)			OK
 ;; - mode-line-string (file)			??
 ;; STATE-CHANGING FUNCTIONS
-;; * create-repo (backend)			OK
+;; * create-repo ()				OK
 ;; * register (files &optional comment)		OK
 ;; - responsible-p (file)			OK
 ;; - receive-file (file rev)			??
@@ -48,7 +48,7 @@
 ;; * find-revision (file rev buffer)		OK
 ;; * checkout (file &optional rev)		OK
 ;; * revert (file &optional contents-done)	OK
-;; - merge-file (file rev1 rev2)		??
+;; - merge-file (file &optional rev1 rev2)		??
 ;; - merge-branch ()				??
 ;; - merge-news (file)				??
 ;; - pull (prompt)				OK
@@ -59,9 +59,9 @@
 ;; - find-admin-dir (file)			??
 ;; HISTORY FUNCTIONS
 ;; * print-log (files buffer &optional shortlog start-revision limit) OK
-;; * log-outgoing (backend remote-location)	??
-;; * log-incoming (backend remote-location)	??
-;; - log-search (pattern)			??
+;; * log-outgoing (buffer remote-location)	??
+;; * log-incoming (buffer remote-location)	??
+;; - log-search (buffer pattern)			??
 ;; - log-view-mode ()				OK
 ;; - show-log-entry (revision)			??
 ;; - comment-history (file)			??
@@ -81,8 +81,8 @@
 ;; MISCELLANEOUS
 ;; - make-version-backups-p (file)		??
 ;; - root (file)				OK
-;; - ignore (file &optional directory)		??
-;; - ignore-completion-table			??
+;; - ignore (file &optional directory remove)	??
+;; - ignore-completion-table (directory)	??
 ;; - previous-revision (file rev)		OK
 ;; - next-revision (file rev)			OK
 ;; - log-edit-mode ()				??
@@ -162,13 +162,13 @@
   (cond ((not code)                 'unregistered)
 	((string= code "UNKNOWN")   'unregistered)
 	((string= code "UNCHANGED") 'up-to-date)
-	((string= code "CONFLICT")  'edited)
+	((string= code "CONFLICT")  'conflict)
 	((string= code "ADDED")     'added)
 	((string= code "ADD")       'needs-update)
 	((string= code "EDITED")    'edited)
 	((string= code "REMOVE")    'removed)
 	((string= code "UPDATE")    'needs-update)
-	((string= code "MERGE")     'needs-merge)
+	((string= code "UPDATED_BY_MERGE") 'needs-merge)
 	((string= code "EXTRA")     'unregistered)
 	((string= code "MISSING")   'missing)
 	((string= code "RENAMED")   'added)
@@ -182,8 +182,10 @@
   (let* ((default-directory dir)
 	 (lines (split-string (vc-fossil--run "changes" "--classify" "--all" ".") "[\n\r]+" t)))
     (dolist (line lines)
-      (string-match "^\\(\\w+\\)\\s-+\\(.+\\)$" line)
-      (let ((pair (cons (match-string 2 line) (match-string 1 line))))
+      (let* ((state-and-file (split-string-and-unquote line))
+	     (state (car state-and-file))
+	     (file (cadr state-and-file))
+	     (pair (cons file state)))
 	(push pair vc-fossil--file-classifications)))))
 
 (defun vc-fossil--propertize-header-line (name value)
@@ -205,7 +207,7 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 		 (repeat :tag "Argument List" :value ("") string))
   :group 'vc-fossil)
 
-(defcustom vc-fossil-extra-header-fields (list :checkout :tags)
+(defcustom vc-fossil-extra-header-fields (list :repository :remote-url :checkout :tags)
   "A list of keywords denoting extra header fields to show in the vc-dir buffer."
   :type '(set (const :repository) (const :remote-url) (const :synchro)
 	      (const :checkout) (const :comment) (const :tags))
@@ -266,7 +268,7 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 	(forward-line)))
     ;; Now collect untracked files.
     (delete-region (point-min) (point-max))
-    (insert (apply 'vc-fossil--run "extras" "--dotfiles" (or files (list dir))))
+    (insert (apply 'vc-fossil--run "extras" "--dotfiles" (list dir)))
     (goto-char (point-min))
     (while (not (eobp))
       (let ((file (buffer-substring-no-properties (point) (line-end-position))))
@@ -287,7 +289,8 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 	       (push (vc-fossil--propertize-header-line "Repository : " repo) lines)))
 	    ((eql field :remote-url)
 	     (let ((remote-url (car (split-string (vc-fossil--run "remote-url")))))
-	       (push (vc-fossil--propertize-header-line "Remote URL : " remote-url) lines)))
+	       (unless (string= "off" remote-url)
+		 (push (vc-fossil--propertize-header-line "Remote     : " remote-url) lines))))
 	    ((eql field :synchro)
 	     (let* ((as-match (string-match "^autosync +.+ +\\([[:graph:]]+\\)$" settings))
 		    (autosync (and as-match (match-string 1 settings)))
@@ -379,7 +382,7 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
       t
     (vc-fossil--command nil 0 file "revert")))
 
-;; - merge-file (file rev1 rev2)
+;; - merge-file (file &optional rev1 rev2)
 
 ;; - merge-branch ()
 
@@ -419,11 +422,11 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 		(when limit (list "-n" (number-to-string limit)))
 		(list "-p" (file-relative-name (expand-file-name file)))))))))
 
-;; * log-outgoing (backend remote-location)
+;; * log-outgoing (buffer remote-location)
 
-;; * log-incoming (backend remote-location)
+;; * log-incoming (buffer remote-location)
 
-;; - log-search (pattern)
+;; - log-search (buffer pattern)
 
 (defvar log-view-message-re)
 (defvar log-view-file-re)
