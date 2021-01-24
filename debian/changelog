@@ -1,3 +1,10 @@
+emacs-fossil (2020.09.20-4) unstable; urgency=medium
+
+  * Track upstream changes
+  * Bump policy
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Sun, 24 Jan 2021 15:34:58 +0000
+
 emacs-fossil (2020.09.20-3) unstable; urgency=medium
 
   * Track upstream changes
