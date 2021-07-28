@@ -1,3 +1,9 @@
+emacs-fossil (2020.09.20-5) UNRELEASED; urgency=medium
+
+  * Drop emacs25 from Enhances (package does not exist in bullseye).
+
+ -- Nicholas D Steeves <sten@debian.org>  Wed, 28 Jul 2021 19:30:22 -0400
+
 emacs-fossil (2020.09.20-4) unstable; urgency=medium
 
   * Track upstream changes
