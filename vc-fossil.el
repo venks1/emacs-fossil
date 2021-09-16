@@ -48,7 +48,7 @@
 ;; * find-revision (file rev buffer)		OK
 ;; * checkout (file &optional rev)		OK
 ;; * revert (file &optional contents-done)	OK
-;; - merge-file (file &optional rev1 rev2)		??
+;; - merge-file (file &optional rev1 rev2)	??
 ;; - merge-branch ()				??
 ;; - merge-news (file)				??
 ;; - pull (prompt)				OK
@@ -61,7 +61,7 @@
 ;; * print-log (files buffer &optional shortlog start-revision limit) OK
 ;; * log-outgoing (buffer remote-location)	??
 ;; * log-incoming (buffer remote-location)	??
-;; - log-search (buffer pattern)			??
+;; - log-search (buffer pattern)		??
 ;; - log-view-mode ()				OK
 ;; - show-log-entry (revision)			??
 ;; - comment-history (file)			??
@@ -83,6 +83,7 @@
 ;; - root (file)				OK
 ;; - ignore (file &optional directory remove)	??
 ;; - ignore-completion-table (directory)	??
+;; - find-ignore-file file			OK
 ;; - previous-revision (file rev)		OK
 ;; - next-revision (file rev)			OK
 ;; - log-edit-mode ()				??
@@ -93,6 +94,7 @@
 ;; - extra-menu ()				??
 ;; - extra-dir-menu ()				??
 ;; - conflicted-files (dir)			??
+;; - repository-url (file-or-dir &optional remote-name) OK
 
 ;;; Code:
 
@@ -191,6 +193,12 @@
 (defun vc-fossil--propertize-header-line (name value)
   (concat (propertize name  'face 'font-lock-type-face)
 	  (propertize value 'face 'font-lock-variable-name-face)))
+
+(defun vc-fossil--remotes ()
+  (let ((remotes '()))
+    (dolist (l (split-string (vc-fossil--run "remote" "list") "\n" t))
+      (push (split-string l) remotes))
+    remotes))
 
 ;; Customization
 
@@ -532,6 +540,10 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 
 ;; - ignore-completion-table
 
+(defun vc-fossil-find-ignore-file (file)
+  (expand-file-name ".fossil-settings/ignore-glob"
+		    (vc-fossil-root file)))
+
 (defun vc-fossil-previous-revision (file rev)
   (with-temp-buffer
     (cond
@@ -581,6 +593,10 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 ;; - extra-dir-menu ()
 
 ;; - conflicted-files (dir)
+
+(defun vc-fossil-repository-url (file-or-dir &optional remote-name)
+  (let ((default-directory (vc-fossil-root file-or-dir)))
+    (cadr (assoc (or remote-name "default") (vc-fossil--remotes)))))
 
 ;;; This snippet enables the Fossil VC backend so it will work once
 ;;; this file is loaded.  By also marking it for inclusion in the
