@@ -598,6 +598,41 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
   (let ((default-directory (vc-fossil-root file-or-dir)))
     (cadr (assoc (or remote-name "default") (vc-fossil--remotes)))))
 
+;; Useful functions for interacting with Fossil
+
+(defun vc-fossil--url-without-authinfo (url)
+  (let ((parsed (url-generic-parse-url url)))
+    (setf (url-user parsed) nil)
+    (setf (url-password parsed) nil)
+    (url-recreate-url parsed)))
+
+(defun vc-fossil--relative-file-name (file)
+  (let ((l0 (car (split-string (vc-fossil--run "finfo" file) "\n" t))))
+    (save-match-data
+      (and (string-match "^History for \\(.*\\)$" l0)
+	   (setq file (match-string 1 l0)))
+      file)))
+
+(defun vc-fossil-link (start end)
+  "Puts the current URL to a file in the kill ring."
+  (interactive "r")
+  (let ((default-directory (file-name-directory (buffer-file-name (current-buffer)))))
+    (unless (vc-fossil-registered (buffer-file-name))
+      (error "%s: file is not registerd in vc" (buffer-file-name)))
+    (let* ((repository-url (vc-fossil--url-without-authinfo
+			    (vc-fossil-repository-url (buffer-file-name))))
+   	   (file (vc-fossil--relative-file-name (buffer-file-name)))
+	   (tag (vc-fossil-working-revision (buffer-file-name (current-buffer))))
+   	   (start (line-number-at-pos (region-beginning)))
+   	   (end (line-number-at-pos (region-end))))
+      (if (= start end)
+	  (setq link (format "%s/file?ci=%s&name=%s&ln=%s"
+ 			     repository-url tag file start))
+	(setq link (format "%s/file?ci=%s&name=%s&ln=%s-%s"
+ 			   repository-url tag file start end)))
+      (kill-new link)
+      (message "%s" link))))
+
 ;;; This snippet enables the Fossil VC backend so it will work once
 ;;; this file is loaded.  By also marking it for inclusion in the
 ;;; autoloads file, installing packaged versions of this should work
