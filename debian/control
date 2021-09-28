@@ -15,7 +15,7 @@ Package: elpa-vc-fossil
 Architecture: all
 Depends: ${elpa:Depends}, ${misc:Depends}, fossil
 Recommends: emacs (>= 46.0)
-Enhances: emacs, emacs25
+Enhances: emacs
 Description: Emacs VC backend for the Fossil Version Control system
  Emacs editor addon to interface to the Fossil version control system.
  This package contains a VC backend for the fossil version control
