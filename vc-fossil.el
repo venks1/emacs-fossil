@@ -1,6 +1,8 @@
 ;;; vc-fossil.el --- VC backend for the fossil sofware configuraiton management system
 
 ;; Author: Venkat Iyer <venkat@comit.com>
+;; Maintainer: Alfred M. Szmidt <ams@gnu.org>
+;; Version: 20210928
 
 ;; vc-fossil.el free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published
@@ -48,7 +50,7 @@
 ;; * find-revision (file rev buffer)		OK
 ;; * checkout (file &optional rev)		OK
 ;; * revert (file &optional contents-done)	OK
-;; - merge-file (file &optional rev1 rev2)		??
+;; - merge-file (file &optional rev1 rev2)	??
 ;; - merge-branch ()				??
 ;; - merge-news (file)				??
 ;; - pull (prompt)				OK
@@ -61,7 +63,7 @@
 ;; * print-log (files buffer &optional shortlog start-revision limit) OK
 ;; * log-outgoing (buffer remote-location)	??
 ;; * log-incoming (buffer remote-location)	??
-;; - log-search (buffer pattern)			??
+;; - log-search (buffer pattern)		??
 ;; - log-view-mode ()				OK
 ;; - show-log-entry (revision)			??
 ;; - comment-history (file)			??
@@ -83,6 +85,7 @@
 ;; - root (file)				OK
 ;; - ignore (file &optional directory remove)	??
 ;; - ignore-completion-table (directory)	??
+;; - find-ignore-file file			OK
 ;; - previous-revision (file rev)		OK
 ;; - next-revision (file rev)			OK
 ;; - log-edit-mode ()				??
@@ -93,6 +96,7 @@
 ;; - extra-menu ()				??
 ;; - extra-dir-menu ()				??
 ;; - conflicted-files (dir)			??
+;; - repository-url (file-or-dir &optional remote-name) OK
 
 ;;; Code:
 
@@ -191,6 +195,12 @@
 (defun vc-fossil--propertize-header-line (name value)
   (concat (propertize name  'face 'font-lock-type-face)
 	  (propertize value 'face 'font-lock-variable-name-face)))
+
+(defun vc-fossil--remotes ()
+  (let ((remotes '()))
+    (dolist (l (split-string (vc-fossil--run "remote" "list") "\n" t))
+      (push (split-string l) remotes))
+    remotes))
 
 ;; Customization
 
@@ -532,6 +542,10 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 
 ;; - ignore-completion-table
 
+(defun vc-fossil-find-ignore-file (file)
+  (expand-file-name ".fossil-settings/ignore-glob"
+		    (vc-fossil-root file)))
+
 (defun vc-fossil-previous-revision (file rev)
   (with-temp-buffer
     (cond
@@ -581,6 +595,45 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 ;; - extra-dir-menu ()
 
 ;; - conflicted-files (dir)
+
+(defun vc-fossil-repository-url (file-or-dir &optional remote-name)
+  (let ((default-directory (vc-fossil-root file-or-dir)))
+    (cadr (assoc (or remote-name "default") (vc-fossil--remotes)))))
+
+;; Useful functions for interacting with Fossil
+
+(defun vc-fossil--url-without-authinfo (url)
+  (let ((parsed (url-generic-parse-url url)))
+    (setf (url-user parsed) nil)
+    (setf (url-password parsed) nil)
+    (url-recreate-url parsed)))
+
+(defun vc-fossil--relative-file-name (file)
+  (let ((l0 (car (split-string (vc-fossil--run "finfo" file) "\n" t))))
+    (save-match-data
+      (and (string-match "^History for \\(.*\\)$" l0)
+	   (setq file (match-string 1 l0)))
+      file)))
+
+(defun vc-fossil-link (start end)
+  "Puts the current URL to a file in the kill ring."
+  (interactive "r")
+  (let ((default-directory (file-name-directory (buffer-file-name (current-buffer)))))
+    (unless (vc-fossil-registered (buffer-file-name))
+      (error "%s: file is not registerd in vc" (buffer-file-name)))
+    (let* ((repository-url (vc-fossil--url-without-authinfo
+			    (vc-fossil-repository-url (buffer-file-name))))
+   	   (file (vc-fossil--relative-file-name (buffer-file-name)))
+	   (tag (vc-fossil-working-revision (buffer-file-name (current-buffer))))
+   	   (start (line-number-at-pos (region-beginning)))
+   	   (end (line-number-at-pos (region-end))))
+      (if (= start end)
+	  (setq link (format "%s/file?ci=%s&name=%s&ln=%s"
+ 			     repository-url tag file start))
+	(setq link (format "%s/file?ci=%s&name=%s&ln=%s-%s"
+ 			   repository-url tag file start end)))
+      (kill-new link)
+      (message "%s" link))))
 
 ;;; This snippet enables the Fossil VC backend so it will work once
 ;;; this file is loaded.  By also marking it for inclusion in the
