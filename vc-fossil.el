@@ -1,7 +1,8 @@
 ;;; vc-fossil.el --- VC backend for the fossil sofware configuraiton management system
 
-;; Version: 20210928
 ;; Author: Venkat Iyer <venkat@comit.com>
+;; Maintainer: Alfred M. Szmidt <ams@gnu.org>
+;; Version: 20210928
 
 ;; vc-fossil.el free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published
