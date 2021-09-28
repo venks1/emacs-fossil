@@ -1,8 +1,9 @@
 emacs-fossil (2021.09.28-1) unstable; urgency=medium
 
   * Track upstream changes
+  * Update standards version to 4.6.0, no changes needed.
 
- -- Barak A. Pearlmutter <bap@debian.org>  Tue, 28 Sep 2021 16:10:19 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 28 Sep 2021 16:11:36 +0100
 
 emacs-fossil (2020.09.20-4) unstable; urgency=medium
 

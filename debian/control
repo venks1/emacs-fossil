@@ -5,7 +5,7 @@ Maintainer: Debian Emacsen Team <debian-emacsen@lists.debian.org>
 Uploaders: Barak A. Pearlmutter <bap@debian.org>
 Build-Depends: debhelper-compat (= 13),
  dh-elpa
-Standards-Version: 4.5.1
+Standards-Version: 4.6.0
 Rules-Requires-Root: no
 Homepage: https://github.com/venks1/emacs-fossil
 Vcs-Browser: https://salsa.debian.org/emacsen-team/emacs-fossil
