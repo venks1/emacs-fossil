@@ -2,7 +2,7 @@
 
 ;; Author: Venkat Iyer <venkat@comit.com>
 ;; Maintainer: Alfred M. Szmidt <ams@gnu.org>
-;; Version: 20210928
+;; Version: 20220528
 
 ;; vc-fossil.el free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published
@@ -51,12 +51,22 @@
 ;; * checkout (file &optional rev)		OK
 ;; * revert (file &optional contents-done)	OK
 ;; - merge-file (file &optional rev1 rev2)	??
-;; - merge-branch ()				??
+;; - merge-branch ()				OK
 ;; - merge-news (file)				??
 ;; - pull (prompt)				OK
 ;; ? push (prompt)				OK
 ;; - steal-lock (file &optional revision)	??
-;; - modify-change-comment (files rev comment)	??
+;; - modify-change-comment (files rev comment)	BROKEN
+;;     This requires a different version of LOG-VIEW-EXTRACT-COMMENT
+;;     and LOG-VIEW-CURRENT-FILE to work.
+;;
+;;     For LOG-VIEW-CURRENT-FILE there has been a bug report filed
+;;     with a fix for GNU Emacs
+;;     (https://lists.gnu.org/archive/html/emacs-devel/2022-05/msg00759.html).
+;;
+;;     LOG-VIEW-EXTRACT-COMMENT needs to be fixed as well somehow to
+;;     extract the actual log message around point.
+;;
 ;; - mark-resolved (files)			??
 ;; - find-admin-dir (file)			??
 ;; HISTORY FUNCTIONS
@@ -201,6 +211,18 @@
     (dolist (l (split-string (vc-fossil--run "remote" "list") "\n" t))
       (push (split-string l) remotes))
     remotes))
+
+(defun vc-fossil--branches ()
+  "Return the existing branches, as a list of strings.
+The car of the list is the current branch."
+  (with-temp-buffer
+    ;;;---!!! This requires that fossil is compiled with JSON support.
+    (vc-fossil--call t "json" "branch" "list")
+    (goto-char (point-min))
+    (let* ((payload (gethash "payload" (json-parse-buffer)))
+	   (current-branch (gethash "current" payload))
+	   (branches (append (gethash "branches" payload) nil)))
+      (cons current-branch (remove current-branch branches)))))
 
 ;; Customization
 
@@ -394,7 +416,16 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 
 ;; - merge-file (file &optional rev1 rev2)
 
-;; - merge-branch ()
+(defun vc-fossil-merge-branch ()
+  "Merge changes into the current branch.
+This prompts for a branch to merge from."
+  (let* ((root (vc-fossil-root default-directory))
+	 (buffer (format "*vc-fossil : %s*" (expand-file-name root)))
+	 (branches (cdr (vc-fossil--branches)))
+	 (merge-source (completing-read "Merge from branch: " branches nil t)))
+    (apply #'vc-do-async-command buffer root "fossil" "merge" (list merge-source))
+    (with-current-buffer buffer (vc-run-delayed (vc-compilation-mode 'Fossil)))
+    (vc-set-async-update buffer)))
 
 ;; - merge-news (file)
 
@@ -411,7 +442,8 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 
 ;; - steal-lock (file &optional revision)
 
-;; - modify-change-comment (files rev comment)
+(defun vc-fossil-modify-change-comment (files rev comment)
+  (vc-fossil--call t "amend" rev "-m" comment))
 
 ;; - mark-resolved (files)
 
@@ -430,7 +462,8 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 	       (nconc
 		(when start-revision (list "before" start-revision))
 		(when limit (list "-n" (number-to-string limit)))
-		(list "-p" (file-relative-name (expand-file-name file)))))))))
+		(list "-p" (file-relative-name (expand-file-name file))))))
+      (goto-char (point-min)))))
 
 ;; * log-outgoing (buffer remote-location)
 
@@ -445,23 +478,23 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 
 (define-derived-mode vc-fossil-log-view-mode log-view-mode "Fossil-Log-View"
   (setq word-wrap t)
-  (set (make-local-variable 'wrap-prefix) "                      ")
-  (set (make-local-variable 'log-view-file-re) "\\`a\\`")
-  (set (make-local-variable 'log-view-per-file-logs) nil)
-  (set (make-local-variable 'log-view-message-re)
-       "^[0-9:]+ \\[\\([0-9a-fA-F]*\\)\\] \\(?:\\*[^*]*\\*\\)? ?\\(.*\\)")
-  (set (make-local-variable 'log-view-font-lock-keywords)
-       (append
-	'(
-	  ("^\\([0-9:]*\\) \\(\\[[[:alnum:]]*\\]\\) \\(\\(?:\\*[[:word:]]*\\*\\)?\\) ?\\(.*?\\) (user: \\([[:word:]]*\\) tags: \\(.*\\))"
-	   (1 'change-log-date)
-	   (2 'change-log-name)
-	   (3 'highlight)
-	   (4 'log-view-message)
-	   (5 'change-log-name)
-	   (6 'highlight))
-	  ("^=== \\(.*\\) ==="
-	   (1 'change-log-date))))))
+  (setq-local wrap-prefix "                      ")
+  (setq-local log-view-file-re "\\`a\\`")
+  (setq-local log-view-per-file-logs nil)
+  (setq-local log-view-message-re
+	      "^[0-9:]+ \\[\\([0-9a-fA-F]*\\)\\] \\(?:\\*[^*]*\\*\\)? ?\\(.*\\)")
+  (setq-local log-view-font-lock-keywords
+	      (append
+	       '(
+		 ("^\\([0-9:]*\\) \\(\\[[[:alnum:]]*\\]\\) \\(\\(?:\\*[[:word:]]*\\*\\)?\\) ?\\(.*?\\) (user: \\([[:word:]]*\\) tags: \\(.*\\))"
+		  (1 'change-log-date)
+		  (2 'change-log-name)
+		  (3 'highlight)
+		  (4 'log-view-message)
+		  (5 'change-log-name)
+		  (6 'highlight))
+		 ("^=== \\(.*\\) ==="
+		  (1 'change-log-date))))))
 
 ;; - show-log-entry (revision)
 
@@ -492,7 +525,7 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
   "\\([[:word:]]+\\)\\s-+\\([-0-9]+\\)\\s-+[0-9]+: ")
 
 (defun vc-fossil-annotate-command (file buffer &optional rev)
-  (vc-fossil--command buffer 0 file "annotate"))
+  (vc-fossil--command buffer 0 file "annotate" "-r" (or rev "trunk")))
 
 (defun vc-fossil-annotate-time ()
   ;; TODO: Currently only the date is used, not the time.
@@ -623,15 +656,15 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
       (error "%s: file is not registerd in vc" (buffer-file-name)))
     (let* ((repository-url (vc-fossil--url-without-authinfo
 			    (vc-fossil-repository-url (buffer-file-name))))
-   	   (file (vc-fossil--relative-file-name (buffer-file-name)))
+	   (file (vc-fossil--relative-file-name (buffer-file-name)))
 	   (tag (vc-fossil-working-revision (buffer-file-name (current-buffer))))
-   	   (start (line-number-at-pos (region-beginning)))
-   	   (end (line-number-at-pos (region-end))))
+	   (start (line-number-at-pos (region-beginning)))
+	   (end (line-number-at-pos (region-end))))
       (if (= start end)
 	  (setq link (format "%s/file?ci=%s&name=%s&ln=%s"
- 			     repository-url tag file start))
+			     repository-url tag file start))
 	(setq link (format "%s/file?ci=%s&name=%s&ln=%s-%s"
- 			   repository-url tag file start end)))
+			   repository-url tag file start end)))
       (kill-new link)
       (message "%s" link))))
 
