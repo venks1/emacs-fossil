@@ -1,11 +1,13 @@
-emacs-fossil (2021.09.28-2) UNRELEASED; urgency=medium
+emacs-fossil (2022.05.28-1) unstable; urgency=medium
 
   [ Nicholas D Steeves ]
   * Drop emacs25 from Enhances (package does not exist in bullseye).
 
   [ Barak A. Pearlmutter ]
+  * Set upstream metadata fields: Repository-Browse.
+  * Bump policy
 
- -- Barak A. Pearlmutter <bap@debian.org>  Tue, 28 Sep 2021 16:18:31 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>  Sun, 29 May 2022 20:12:59 +0100
 
 emacs-fossil (2021.09.28-1) unstable; urgency=medium
 
