@@ -2,7 +2,7 @@
 
 ;; Author: Venkat Iyer <venkat@comit.com>
 ;; Maintainer: Alfred M. Szmidt <ams@gnu.org>
-;; Version: 20221120
+;; Version: 20230504
 
 ;; vc-fossil.el free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published
@@ -225,6 +225,17 @@ The car of the list is the current branch."
 	   (current-branch (gethash "current" payload))
 	   (branches (append (gethash "branches" payload) nil)))
       (cons current-branch (remove current-branch branches)))))
+
+(defun vc-fossil--localname (filename)
+  "Return FILENAME with a possible remote host part stripped."
+  (or (file-remote-p filename 'localname) filename))
+
+(defun vc-fossil--file-truename (filename)
+  "Return the truename of FILENAME without a possible remote host part.
+This is basically the same as `file-truename' but with a possible
+remote host part stripped."
+  (vc-fossil--localname (file-truename filename)))
+
 
 ;; Customization
 
@@ -256,22 +267,23 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 
 ;;;###autoload (defun vc-fossil-registered (file)
 ;;;###autoload   "Return non-nil if FILE is registered with Fossil."
-;;;###autoload   (if (vc-find-root file ".fslckout")       ; Short cut.
+;;;###autoload   (if (or (vc-find-root file ".fslckout") ; Short cut.
+;;;###autoload           (vc-find-root file "_FOSSIL_"))
 ;;;###autoload       (progn
 ;;;###autoload         (load "vc-fossil" nil t)
 ;;;###autoload         (vc-fossil-registered file))))
 (defun vc-fossil-registered (file)
   (with-temp-buffer
     (let* ((str (ignore-errors
-		  (vc-fossil--out-ok "finfo" "-s" (file-truename file))
-		  (buffer-string))))
+		          (vc-fossil--out-ok "finfo" "-s" (vc-fossil--file-truename file))
+		          (buffer-string))))
       (and str
-	   (> (length str) 7)
-	   (not (string= (substring str 0 7) "unknown"))))))
+	       (> (length str) 7)
+	       (not (string= (substring str 0 7) "unknown"))))))
 
 (defun vc-fossil-state (file)
-  (let* ((line (vc-fossil--run "changes" "--classify" "--all" (file-truename file)))
-	 (state (vc-fossil--state-code (car (split-string line)))))
+  (let* ((line (vc-fossil--run "changes" "--classify" "--all" (vc-fossil--file-truename file)))
+	     (state (vc-fossil--state-code (car (split-string line)))))
     ;; ---!!! Does 'fossil update' and 'fossil changes' have different
     ;; ---!!!    semantics here?
     ;;;
@@ -279,39 +291,39 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
     ;; has been RENAMED.
     (when (or (not state) (eql state 'up-to-date))
       (let ((line (vc-fossil--run "changes" "--classify" "--unchanged" "--renamed"
-				  (file-truename file))))
+				  (vc-fossil--file-truename file))))
 	(setq state (and line (vc-fossil--state-code (car (split-string line)))))))
     state))
 
 (defun vc-fossil-dir-status-files (dir files update-function)
   (vc-fossil--classify-all-files dir)
   (insert (apply #'vc-fossil--run "changes" "--classify" "--all"
-		 (or files (list dir))))
+		         (mapcar #'vc-fossil--localname (or files (list dir)))))
   (let ((result '()))
     (goto-char (point-min))
     (while (not (eobp))
       (let* ((line (buffer-substring-no-properties (point) (line-end-position)))
-	     (status-word (car (split-string line))))
-	(if (string-match "-----" status-word)
-	    (goto-char (point-max))
-	  (let ((file (cadr (split-string line)))
-		(state (vc-fossil--state-code status-word)))
-	    ;; If 'fossil update' says file is UNCHANGED check to see
-	    ;; if it has been RENAMED.
-	    (when (or (not state) (eql state 'up-to-date))
-	      (setq state (vc-fossil--state-code
-			   (cdr (assoc file vc-fossil--file-classifications)))))
-	    (when (not (eq state 'up-to-date))
-	      (push (list file state) result))))
-	(forward-line)))
+	         (status-word (car (split-string line))))
+	    (if (string-match "-----" status-word)
+	        (goto-char (point-max))
+	      (let ((file (cadr (split-string line)))
+		        (state (vc-fossil--state-code status-word)))
+	        ;; If 'fossil update' says file is UNCHANGED check to see
+	        ;; if it has been RENAMED.
+	        (when (or (not state) (eql state 'up-to-date))
+	          (setq state (vc-fossil--state-code
+			               (cdr (assoc file vc-fossil--file-classifications)))))
+	        (when (not (eq state 'up-to-date))
+	          (push (list file state) result))))
+	    (forward-line)))
     ;; Now collect untracked files.
     (delete-region (point-min) (point-max))
-    (insert (apply #'vc-fossil--run "extras" "--dotfiles" (list dir)))
+    (insert (apply #'vc-fossil--run "extras" "--dotfiles" (list (vc-fossil--localname dir))))
     (goto-char (point-min))
     (while (not (eobp))
       (let ((file (buffer-substring-no-properties (point) (line-end-position))))
-	(push (list file (vc-fossil--state-code nil)) result)
-	(forward-line)))
+	    (push (list file (vc-fossil--state-code nil)) result)
+	    (forward-line)))
     (funcall update-function result nil)))
 
 (defun vc-fossil-dir-extra-headers (_dir)
@@ -365,7 +377,7 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 ;; - status-fileinfo-extra (file)
 
 (defun vc-fossil-working-revision (file)
-  (let ((line (vc-fossil--run "finfo" "-s" (file-truename file))))
+  (let ((line (vc-fossil--run "finfo" "-s" (vc-fossil--file-truename file))))
     (and line
 	 (cadr (split-string line)))))
 
@@ -380,7 +392,7 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 
 (defun vc-fossil-register (files &optional _rev _comment)
   ;; We ignore the comment.  There's no comment on add.
-  (vc-fossil--command nil 0 files "add"))
+  (vc-fossil--command nil 0 (mapcar #'vc-fossil--localname files) "add"))
 
 (defun vc-fossil-responsible-p (file)
   (vc-fossil-root file))
@@ -388,10 +400,10 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 ;; - receive-file (file rev)
 
 (defun vc-fossil-unregister (file)
-  (vc-fossil--command nil 0 file "rm"))
+  (vc-fossil--command nil 0 (vc-fossil--localname file) "rm"))
 
 (defun vc-fossil-checkin (files comment &optional _rev)
-  (apply #'vc-fossil--command nil 0 files
+  (apply #'vc-fossil--command nil 0 (mapcar #'vc-fossil--localname files)
 	 (nconc (list "commit" "-m")
 		(log-edit-extract-headers
 		 `(("Author" . "--user-override")
@@ -402,14 +414,14 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 ;; - checkin-patch (patch-string comment)
 
 (defun vc-fossil-find-revision (file rev buffer)
-  (apply #'vc-fossil--command buffer 0 file
+  (apply #'vc-fossil--command buffer 0 (vc-fossil--localname file)
 	 "cat"
 	 (nconc
 	  (unless (zerop (length rev)) (list "-r" rev))
 	  (vc-switches 'Fossil 'checkout))))
 
 (defun vc-fossil-checkout (file &optional _editable rev)
-  (apply #'vc-fossil--command nil 0 file
+  (apply #'vc-fossil--command nil 0 (vc-fossil--localname file)
 	 "update"
 	 (nconc
 	  (cond
@@ -421,7 +433,7 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 (defun vc-fossil-revert (file &optional contents-done)
   (if contents-done
       t
-    (vc-fossil--command nil 0 file "revert")))
+    (vc-fossil--command nil 0 (vc-fossil--localname file) "revert")))
 
 ;; - merge-file (file &optional rev1 rev2)
 
@@ -471,7 +483,7 @@ This prompts for a branch to merge from."
 	       (nconc
 		(when start-revision (list "before" start-revision))
 		(when (numberp limit) (list "-n" (number-to-string limit)))
-		(list "-p" (file-relative-name (expand-file-name file))))))
+		(list "-p" (file-relative-name (vc-fossil--localname (expand-file-name file)))))))
       (goto-char (point-min)))))
 
 ;; * log-outgoing (buffer remote-location)
@@ -521,7 +533,7 @@ This prompts for a branch to merge from."
 		 (equal root (expand-file-name (car files)))))
 	(setq files nil))
     (apply #'vc-fossil--command
-	   buf 0 files "diff" "-i"
+	   buf 0 (mapcar #'vc-fossil--localname files) "diff" "-i"
 	   (nconc
 	    (cond
 	     (rev2 (list "--from" (or rev1 "current") "--to" rev2))
@@ -535,7 +547,7 @@ This prompts for a branch to merge from."
   "\\([[:word:]]+\\)\\s-+\\([-0-9]+\\)\\s-+[0-9]+: ")
 
 (defun vc-fossil-annotate-command (file buffer &optional rev)
-  (vc-fossil--command buffer 0 file "annotate" "-r" (or rev "trunk")))
+  (vc-fossil--command buffer 0 (vc-fossil--localname file) "annotate" "-r" (or rev "trunk")))
 
 (defun vc-fossil-annotate-time ()
   ;; TODO: Currently only the date is used, not the time.
@@ -600,7 +612,7 @@ This prompts for a branch to merge from."
   (with-temp-buffer
     (cond
      (file
-      (vc-fossil--command t 0 (file-truename file) "finfo" "-l" "-b")
+      (vc-fossil--command t 0 (vc-fossil--file-truename file) "finfo" "-l" "-b")
       (goto-char (point-min))
       (and (re-search-forward (concat "^" (regexp-quote rev)) nil t)
 	   (zerop (forward-line))
@@ -616,7 +628,7 @@ This prompts for a branch to merge from."
   (with-temp-buffer
     (cond
      (file
-      (vc-fossil--command t 0 (file-truename file) "finfo" "-l" "-b")
+      (vc-fossil--command t 0 (vc-fossil--file-truename file) "finfo" "-l" "-b")
       (goto-char (point-min))
       (and (re-search-forward (concat "^" (regexp-quote rev)) nil t)
 	   (zerop (forward-line -1))
@@ -633,10 +645,10 @@ This prompts for a branch to merge from."
 ;; - check-headers ()
 
 (defun vc-fossil-delete-file (file)
-  (vc-fossil--command nil 0 (file-truename file) "rm" "--hard"))
+  (vc-fossil--command nil 0 (vc-fossil--file-truename file) "rm" "--hard"))
 
 (defun vc-fossil-rename-file (old new)
-  (vc-fossil--command nil 0 (list (file-truename old) (file-truename new)) "mv" "--hard"))
+  (vc-fossil--command nil 0 (list (vc-fossil--file-truename old) (vc-fossil--file-truename new)) "mv" "--hard"))
 
 ;; - find-file-hook ()
 
